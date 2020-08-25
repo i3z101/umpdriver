@@ -1,5 +1,5 @@
 import React from 'react'
-import {View, Text, StyleSheet, Platform,TouchableOpacity, TouchableWithoutFeedback} from 'react-native'
+import {View, Text, StyleSheet, Platform,TouchableOpacity, TouchableWithoutFeedback, ImageBackground} from 'react-native'
 import { HeaderButtons, Item } from 'react-navigation-header-buttons'
 import CustomHeaderButton from '../component/HeaderButton'
 import { DrawerActions } from '@react-navigation/native';
@@ -56,7 +56,7 @@ const styles= StyleSheet.create({
         flex:1,
         justifyContent:'center',
         alignItems:'center',
-        backgroundColor:Color.white
+        backgroundColor:Color.white,
     },
     cardContainer:{
         flexDirection:'row',

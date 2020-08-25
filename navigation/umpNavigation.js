@@ -93,11 +93,15 @@ const UmpNavigation= props=>{
 
     return <Drawer.Navigator drawerContentOptions={{
         activeBackgroundColor:Color.Primary,
-        activeTintColor: Color.Second                          
+        activeTintColor: Color.Second,                          
     }}>
 
-    <Drawer.Screen name='Order' component={BottomNavigator}/>
-    <Drawer.Screen name='Filter' component={FilterNavigator}/>
+    <Drawer.Screen name='Order' component={BottomNavigator} options={{
+        gestureEnabled:false
+    }}/>
+    <Drawer.Screen name='Filter' component={FilterNavigator} options={{
+        gestureEnabled:false
+    }}/>
     
     </Drawer.Navigator>
 

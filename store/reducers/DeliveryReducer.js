@@ -1,19 +1,33 @@
-import Delivery from '../../modal/delivery-class'
+import Delivery, { dummyDelivery } from '../../modal/delivery-class'
 import { dummyDriver } from '../../modal/driver-class'
 
 const initState= {
-    delivery:[],
+    deliveryOrder:[],
+   
     driver:[dummyDriver]
 }
 
 const deliveryReducer=(state=initState, action)=>{
     switch(action.type){
-        case 'addDeliveryOrder':
+        case 'ADD_DELIVERY_ORDER':
+           if(!state.deliveryOrder[action.id]){
             const newDeliveryOrder= new Delivery(new Date().toString(), action.data.serviceType, action.data.description, action.data.address, action.data.gooleMapUrl, action.data.time)
+                        return{
+                            ...state,
+                            deliveryOrder: state.deliveryOrder.concat(newDeliveryOrder),
+                        }
+           }else{
+               return state
+           }
+            
+        case 'CANCEL_ORDER':
+            const deliveryOrderCopy= {...state.deliveryOrder} 
+            const deliveryOrderIndex= state.deliveryOrder.findIndex(del=>del.id===action.id)
             return{
                 ...state,
-                delivery: state.delivery.concat(newDeliveryOrder)
+                deliveryOrder: state.deliveryOrder.splice(1,deliveryOrderIndex)
             }
+        
         default:
             return state
     }

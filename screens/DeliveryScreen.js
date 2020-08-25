@@ -4,18 +4,29 @@ import Color from '../constants/Color';
 import {Picker} from '@react-native-community/picker';
 import Card from '../component/Card';
 import {Formik} from 'formik'
-import * as yup from 'yup'
-import { TextInput, Button } from 'react-native-paper';
-import { color } from 'react-native-reanimated';
+import {TextInput, Button} from 'react-native-paper'
+import Modal from 'react-native-modal'
+
 import {Ionicons} from '@expo/vector-icons'
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment'
 import { useDispatch, useSelector } from 'react-redux';
-import { addDeliveryOrder } from '../store/actions/addAction';
+import { addDeliveryOrder, cancelOrder } from '../store/actions/actions';
+import {CommonActions} from '@react-navigation/native'
 import { Modalize } from 'react-native-modalize';
-import Modal from 'react-native-modal'
+import DriverInfo from '../component/DriverInfo';
+import ModalItem from '../component/ModalItem';
+import BottomSheet from 'reanimated-bottom-sheet';
+import RBSheet from "react-native-raw-bottom-sheet";
+
 
 const DeliveryScreen= props=>{
+    let id;
+
+    if(props.route.params?.id){
+        id=props.route.params?.id
+    }
+
     let Touchable;
     if(Platform.OS==='android'){
         Touchable= TouchableWithoutFeedback
@@ -29,15 +40,72 @@ const DeliveryScreen= props=>{
     const [timeDeliveryValue, setTimeDeliveryValue]=useState(null)
     const [showTime, setShowTime]= useState(false)
     const [showGoogleMap, setShowGoogleMap]=useState(false)
-
-    const deliveryinfo= useSelector(state=>state.delivery.delivery)
+    const [disabledWrite,setDisabledWrite]=useState(false)
+    const delivery= useSelector(state=>state.delivery.deliveryOrder)
     const driverInfo= useSelector(state=>state.delivery.driver)
     const dispatch= useDispatch()
     const[showModal, setShowModal]=useState(false)
-    const showModalize= useRef(Modalize)
+    // const bottomShow= useRef(null)
+    const bottomShow= useRef(RBSheet)
+  
+
     // useEffect(()=>{
-    //     console.log(data);
-    // },[data])
+    //     props.navigation.dispatch(
+    //         CommonActions.reset()
+    //     )
+    // },[])
+    
+    let modal;
+
+    if(delivery.length>0){
+        modal= (
+            
+           <RBSheet
+           animationType='slide'
+           ref={bottomShow}
+           height={300}
+           openDuration={250}
+           customStyles={{
+             container: {
+               justifyContent: "center",
+               alignItems: "center"
+             },
+             wrapper: {
+                backgroundColor: "transparent"
+              },
+              draggableIcon: {
+                backgroundColor: Color.Primary
+              }
+           }}
+           closeOnPressMask={false}
+           >
+          <FlatList
+                contentContainerStyle={{backgroundColor:Color.white}}
+                data={delivery}
+                renderItem={itemData=><ModalItem
+                       serviceType={itemData.item.serviceType}
+                       address={itemData.item.address}
+                       time={itemData.item.time}
+                       onPress={()=>cancelOrderHandler(itemData.item.id)}
+                       driverName={driverInfo[0].driverName}
+                       carName={driverInfo[0].driverCar}
+                       driverCarModel={driverInfo[0].driverCarModel}
+                       driverCarColor={driverInfo[0].driverCarColor}
+                   />}
+                />
+         
+           </RBSheet>
+        )
+    }else{
+        modal=null
+    }
+
+    
+
+    
+
+
+    
 
     const onChange = (event, date) => {
         const currentDate = date||timeValue;
@@ -46,9 +114,18 @@ const DeliveryScreen= props=>{
       };
 
       const deliveryOrderHandler= (description,address, googleMapUrl)=>{
-        
+
+       
          dispatch(addDeliveryOrder(selectedService, description, address,googleMapUrl,timeDeliveryValue))
-         setShowModal(true)
+        //  setShowModal(true)
+        setDisabledWrite(true)
+        bottomShow.current.open()
+      }
+
+      const cancelOrderHandler=(id)=>{
+          dispatch(cancelOrder(id))
+        //   setShowModal(false)
+        bottomShow.current.close()
       }
 
     return <TouchableWithoutFeedback onPress={()=>Keyboard.dismiss()} >
@@ -73,7 +150,8 @@ const DeliveryScreen= props=>{
        
             <View style={styles.form}>
                   
-                {showPicker? <Picker
+                {showPicker && !bottomShow.current? <Picker
+                    
                 selectedValue={selectedService}
                 onValueChange={(itemValue, index)=>setSelectedService(itemValue)}
                 style={styles.pickerStyle}
@@ -95,6 +173,7 @@ const DeliveryScreen= props=>{
             <View style={styles.form}>
            <View style={styles.inputContainer}>
                 <TextInput
+                disabled={disabledWrite}
                 label='description of the order'
                 mode='outlined'
                 theme={{
@@ -115,6 +194,7 @@ const DeliveryScreen= props=>{
             <View style={styles.form}>
             <View style={styles.inputContainer}>
                  <TextInput
+                 disabled={disabledWrite}
                  label='Address'
                  mode='outlined'
                  theme={{
@@ -134,6 +214,7 @@ const DeliveryScreen= props=>{
              <View style={styles.form}>
              <View style={styles.inputContainer}>
                  {showGoogleMap? <TextInput
+                    disabled={disabledWrite}
                   label='google map'
                   mode='outlined'
                   theme={{
@@ -178,6 +259,7 @@ const DeliveryScreen= props=>{
 
             <View style={styles.butonContainer}>
                 <Button
+                // disabled={bottomShow.current?true:false}
                 children='place order'
                 mode='contained'
                 onPress={()=>formikProps.handleSubmit()}
@@ -190,9 +272,13 @@ const DeliveryScreen= props=>{
                 }}
                 />
                 <Button
+                disabled={bottomShow.current?true:false}
                 children='cancel'
                 mode='contained'
-                onPress={()=>props.navigation.goBack()}
+                onPress={()=>{
+                    props.navigation.goBack()
+                    cancelOrderHandler()
+                }}
                 style={styles.button}
                 theme={{
                     colors:{
@@ -208,65 +294,14 @@ const DeliveryScreen= props=>{
     )}
     
     </Formik>
-    {deliveryinfo.length!==0?
-        <Modal
-        isVisible={showModal}
-        animationIn='slideInUp'
-        style={{
-            backgroundColor:Color.white,
-        
-        }}
-        coverScreen={false}
-        deviceHeight={Dimensions.get('window').width/2}
-        >
+   
+    {modal}
+    
+    
        
-        <View style={{flex:1, borderBottomWidth:1,}}>
-        <View style={{alignItems:'center', borderWidth:1, padding:10, margin:15, backgroundColor:Color.Primary}}>
-        <Text style={{color:Color.white}}>ORDER SUMMARY</Text>
-        </View>
-            <View style={styles.containerModal}>
-            <Text style={styles.textTitle}>FROM:</Text>
-            <Text>{deliveryinfo[deliveryinfo.length-1].serviceType}</Text>
-            </View>
-            <View style={styles.containerModal}>
-            <Text style={styles.textTitle}>TO:</Text>
-            <Text>{deliveryinfo[deliveryinfo.length-1].address}</Text>
-            </View>
-            <View style={styles.containerModal}>
-            <Text style={styles.textTitle}>DESC:</Text>
-            <Text>{deliveryinfo[deliveryinfo.length-1].description}</Text>
-            </View>
-            <View style={styles.containerModal}>
-            <Text style={styles.textTitle}>TIME:</Text>
-            <Text>{deliveryinfo[deliveryinfo.length-1].time}</Text>
-            </View>
-        </View>
-        <View style={{alignItems:'center', borderWidth:1, padding:10, margin:15, backgroundColor:Color.Primary}}>
-        <Text style={{color:Color.white}}>DRIVER INFORMATION</Text>
-        </View>
-        <View style={{...styles.containerModal, width:'104%'}}>
-        <Text style={styles.textTitle}>NAME:</Text>
-        <Text>{driverInfo[driverInfo.length-1].driverName}</Text>
-        </View>
-        <View style={styles.containerModal}>
-        <Text style={styles.textTitle}>CAR NAME:</Text>
-        <Text>{driverInfo[driverInfo.length-1].driverCar}</Text>
-        </View>
-        <View style={styles.containerModal}>
-        <Text style={styles.textTitle}>CAR MODEL:</Text>
-        <Text>{driverInfo[driverInfo.length-1].driverCarModel}</Text>
-        </View>
-        <View style={styles.containerModal}>
-        <Text style={styles.textTitle}>CAR COLOR:</Text>
-        <Text>{driverInfo[driverInfo.length-1].driverCarColor}</Text>
-        </View>
-        
-        <Button children="close" onPress={()=>setShowModal(false)}/>
-        
-        </Modal>
-        : null
-    }
-     
+    
+       
+    
        
   
    
@@ -312,13 +347,7 @@ const styles= StyleSheet.create({
         padding:10,
 
     },
-   containerModal:{
-    justifyContent:'space-evenly', flexDirection:'row', marginVertical:8.5, borderBottomEndRadius:10
-   },
-   textTitle:{
-       fontSize:16,
-       fontWeight:'bold'
-   }
+  
     
 })
 
@@ -327,7 +356,9 @@ export const DeliveryOptionStyle= navData=>{
        headerTintColor: Color.Second,
        cardStyle:{
            backgroundColor:Color.white
-       }
+       },
+       gestureEnabled:false,
+       headerLeft:null
     }
 }
 

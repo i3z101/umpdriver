@@ -19,7 +19,7 @@ const styles= StyleSheet.create({
 
 export const PickUpOptionStyle= navData=>{
     return{
-       headerTintColor: Color.Second 
+       headerTintColor: Color.Second ,
     }
 }
 
