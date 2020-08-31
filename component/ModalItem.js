@@ -77,8 +77,8 @@ const styles=StyleSheet.create({
             marginVertical:10
        },
        buttonCancel:{
-           padding:1,
-           width:'60%'
+        //    padding:5,
+           width:'60%',
        }
 })
 export default ModalItem

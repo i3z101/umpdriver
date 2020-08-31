@@ -3,7 +3,7 @@ import { dummyDriver } from '../../modal/driver-class'
 
 const initState= {
     deliveryOrder:[],
-   
+    deliveyHistory:[],
     driver:[dummyDriver]
 }
 
@@ -15,6 +15,7 @@ const deliveryReducer=(state=initState, action)=>{
                         return{
                             ...state,
                             deliveryOrder: state.deliveryOrder.concat(newDeliveryOrder),
+                            deliveryHitory:state.deliveryOrder.concat(newDeliveryOrder),
                         }
            }else{
                return state

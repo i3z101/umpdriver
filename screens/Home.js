@@ -7,7 +7,7 @@ import Color from '../constants/Color';
 import Card from '../component/Card';
 import { Button } from 'react-native-paper';
 import {Ionicons} from '@expo/vector-icons'
-
+import LottieView from 'lottie-react-native';
 
 
 const Home= props=>{
@@ -29,7 +29,7 @@ const Home= props=>{
         
         </View>
         <View style={styles.icon}>
-            <Ionicons name={Platform.OS==='android'?'md-car':'ios-car'} size={40} color={Color.Primary}/>
+        <LottieView source={require('../assets/UI/location.json')}  autoPlay loop/>
         </View>
     </Card>
     </Touchable>
@@ -42,7 +42,7 @@ const Home= props=>{
     
     </View>
     <View style={styles.icon}>
-        <Ionicons name={Platform.OS==='android'?'md-send':'ios-send'} size={40} color={Color.Primary}/>
+       <LottieView source={require('../assets/UI/delivery.json')} autoPlay loop speed={1.5}/>
     </View>
   </Card>
   </Touchable>
@@ -74,8 +74,9 @@ const styles= StyleSheet.create({
         marginVertical:5
     },
     icon:{
-        alignItems:'center'
-    }
+        width:'100%', 
+        height:'65%', 
+        alignSelf:'center'}
 })
 
 export const OrderOptionStyle= navData=>{
