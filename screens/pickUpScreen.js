@@ -2,9 +2,7 @@ import React, { useEffect } from 'react'
 import {View, Text, StyleSheet, Alert} from 'react-native'
 import Color from '../constants/Color';
 import MapPreview from '../component/MapPreview';
-import * as MapView from 'react-native-maps'
 import * as Permissions from 'expo-permissions'
-import SearchBarView from '../component/SearchBar';
 
 const PickUpScreen= props=>{
     const getPermission= async()=>{
