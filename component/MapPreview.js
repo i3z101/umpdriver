@@ -11,7 +11,9 @@ import * as Location from 'expo-location'
 import { TouchableWithoutFeedback } from 'react-native-gesture-handler'
 import {Modalize} from 'react-native-modalize'
 import MapViewDirections from 'react-native-maps-directions'
-
+import { useDispatch, useSelector } from 'react-redux';
+import { pickUpOrder } from '../store/actions/actions';
+import  moment from 'moment'
 
 const MapPreview= props=>{
 
@@ -60,7 +62,8 @@ const MapPreview= props=>{
         lat:null,
         lng:null,
         destination:null,
-        duration:null
+        duration:null,
+        fullPrice:null,
     })
 
     
@@ -69,8 +72,7 @@ const MapPreview= props=>{
     const [autoCompletePlacesArray, setAutoCompletePlaces]= useState([])
     const [showPlaceDetails, setShowPlaceDetails]= useState(false)
     const btmSheet= useRef(Modalize)
-   
-
+    const dispatch= useDispatch()
     // const changeSearchHandler= async(e)=>{
     //     try{
     //         const data= await fetch(`https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${e}&key=${vars.googleApiKey}`,{
@@ -106,22 +108,73 @@ const MapPreview= props=>{
       
     // }
 
-    const autoCompletePlaces= async(description, details)=>{
-        try{const data= await fetch(`https://maps.googleapis.com/maps/api/directions/json?origin=${currentPosition.lat},${currentPosition.lng}&destination=${details.lat},${details.lng}&key=${vars.googleApiKey}`)
+
+
+    const directionDestination= async(description, details)=>{
+
+        try{
+            const data= await fetch(`https://maps.googleapis.com/maps/api/directions/json?origin=${currentPosition.lat},${currentPosition.lng}&destination=${details.lat},${details.lng}&key=${vars.googleApiKey}`)
         if(!data.ok){
             throw new Error("ERROR IN THE REQUEST")
         }
         const response= await data.json()
-        console.log(response.routes[0].legs[0].distance.text);
-        console.log(response.routes[0].legs[0].duration.text);
         const distance= response.routes[0].legs[0].distance.text;
         const duration= response.routes[0].legs[0].duration.text;
+
+        const destinationKm= parseFloat(distance)
+        let startDestinationPrice=0;
+        let destinationsubPricee=0;
+        let destinationFullPrice=0
+        
+        if(destinationKm>=1&&destinationKm<=10){
+            startDestinationPrice= 1.6;
+            destinationsubPricee= destinationKm / startDestinationPrice;
+            destinationFullPrice= Math.floor(destinationsubPricee)
+        }else if(destinationKm>=11&&destinationKm<=19){
+            startDestinationPrice= 1.5;
+            destinationsubPricee= destinationKm / startDestinationPrice;
+            destinationFullPrice= Math.floor(destinationsubPricee)
+        }else if(destinationKm>=20&&destinationKm<=25){
+            startDestinationPrice= 1.3;
+            destinationsubPricee= destinationKm / startDestinationPrice;
+            destinationFullPrice= Math.floor(destinationsubPricee)
+        }else if(destinationKm>26&&destinationKm<=30){
+            startDestinationPrice= 1.3;
+            destinationsubPricee= destinationKm / startDestinationPrice;
+            destinationFullPrice= Math.floor(destinationsubPricee)
+        }else if(destinationKm>=30&&destinationKm<=35){
+            startDestinationPrice= 1.2;
+            destinationsubPricee= destinationKm / startDestinationPrice;
+            destinationFullPrice= Math.floor(destinationsubPricee)
+        }else if(destinationKm>=36&&destinationKm<=40){
+            startDestinationPrice= 1.1;
+            destinationsubPricee= destinationKm / startDestinationPrice;
+            destinationFullPrice= Math.floor(destinationsubPricee)
+        }else if(destinationKm>=40&&destinationKm<=55){
+            startDestinationPrice= 0.9;
+            destinationsubPricee= destinationKm / startDestinationPrice;
+            destinationFullPrice= Math.floor(destinationsubPricee)
+        }else if(destinationKm>=56&&destinationKm<=70){
+            startDestinationPrice= 0.7;
+            destinationsubPricee= destinationKm / startDestinationPrice;
+            destinationFullPrice= Math.floor(destinationsubPricee)
+        }else if(destinationKm>=71&&destinationKm<=90){
+            startDestinationPrice= 0.5;
+            destinationsubPricee= destinationKm / startDestinationPrice;
+            destinationFullPrice= Math.floor(destinationsubPricee)
+        }else{
+            startDestinationPrice= 0;
+            destinationsubPricee= 0;
+            destinationFullPrice= Math.floor(destinationsubPricee)
+        }
+
         setDestinationDetails({
-            name:description,
+            name:description.length>80?description.split(',').shift():description,
             lat:details.lat, 
             lng:details.lng,
             destination:distance,
-            duration:duration
+            duration:duration,
+            fullPrice: destinationFullPrice,
         })
 
        
@@ -182,6 +235,8 @@ const MapPreview= props=>{
      
     // }
 
+
+
     let mapConfig={
         latitude: currentPosition.lat? currentPosition.lat : 3.822210,
         longitude: currentPosition.lng? currentPosition.lng :103.335450,
@@ -195,6 +250,12 @@ const MapPreview= props=>{
            lng:event.nativeEvent.coordinate.longitude,
        })
        
+    }
+
+    const addPickUpOrder= async(placeName, destination, arrivalTime, price)=>{
+            const orderDate= moment(new Date()).format("dddd, MMMM Do YYYY, h:mm:ss a");
+              dispatch(pickUpOrder(orderDate,placeName, destination, arrivalTime, price))
+            
     }
 
    
@@ -270,7 +331,7 @@ const MapPreview= props=>{
         }   
     }}
     fetchDetails={true}
-    onPress={(data, details)=>autoCompletePlaces(data.description, details.geometry.location)}
+    onPress={(data, details)=>directionDestination(data.description, details.geometry.location)}
     query={{
         key: vars.googleApiKey,
         language:'en'
@@ -304,19 +365,20 @@ const MapPreview= props=>{
         </View>
             <DataTable>
             <DataTable.Header style={{borderBottomWidth:1, borderBottomColor:Color.Second}} >
-            <DataTable.Title><Text style={styles.tableHeaderText}>DESTINATION(KM)</Text></DataTable.Title>
+            <DataTable.Title><Text style={styles.tableHeaderText}>Destination</Text></DataTable.Title>
                 <DataTable.Cell numeric><Text style={styles.tableRowText}>{destinationDetails.destination}</Text></DataTable.Cell>
             </DataTable.Header>
 
             <DataTable.Header style={{borderBottomWidth:1, borderBottomColor:Color.Second}} >
-            <DataTable.Title ><Text style={styles.tableHeaderText}>ARRIVAL TIME(MINS)</Text></DataTable.Title>
+            <DataTable.Title ><Text style={styles.tableHeaderText}>Expected Arrival in </Text></DataTable.Title>
             <DataTable.Cell numeric><Text style={styles.tableRowText}>{destinationDetails.duration}</Text></DataTable.Cell>
             </DataTable.Header>
           
           
             <DataTable.Header style={{borderBottomWidth:0, borderBottomColor:Color.Second}} >
-            <DataTable.Title><Text style={styles.tableHeaderText}>PRICE(RM)</Text></DataTable.Title>
-            <DataTable.Cell numeric><Text style={styles.tableRowText}>120 RM</Text></DataTable.Cell>
+            <DataTable.Title><Text style={styles.tableHeaderText}>Price </Text></DataTable.Title>
+            {parseFloat(destinationDetails.destination)<=90?<DataTable.Cell numeric><Text style={styles.tableRowText}>{destinationDetails.fullPrice} RM</Text></DataTable.Cell>:
+            <DataTable.Cell numeric><Text style={{fontSize:14.6, fontWeight:'700', color:Color.Primary}}>Driver will contact you</Text></DataTable.Cell>}
             </DataTable.Header>
 
            
@@ -334,7 +396,7 @@ const MapPreview= props=>{
     panGestureComponentEnabled={true}
     FooterComponent={<View style={{marginBottom:10, flexDirection:'row', justifyContent:'space-around'}}>
 
-    <Button children={<Text style={{color:Color.lightBlue, fontSize:16, fontWeight:'500'}}>ORDER NOW</Text>}  color={Color.lightBlue} />
+    <Button children={<Text style={{color:Color.lightBlue, fontSize:16, fontWeight:'500'}}>ORDER NOW</Text>}  color={Color.lightBlue} onPress={()=>addPickUpOrder(destinationDetails.name, destinationDetails.destination, destinationDetails.duration, destinationDetails.fullPrice)}/>
     <Button children={<Text style={{color:'tomato', fontSize:16, fontWeight:'500'}}>CANCEL</Text>}  color='tomato' onPress={()=>btmSheet.current.close()}/>
     </View>}
     HeaderComponent={<View style={styles.headerComponentContainer}>
@@ -388,7 +450,6 @@ const styles= StyleSheet.create({
             color:Color.Primary,
             fontWeight:'700',
             fontSize:15,
-            
         },
         nameText:{
             color:Color.Primary,
@@ -401,7 +462,8 @@ const styles= StyleSheet.create({
         nameTextContainer:{
            alignItems:'center',
            justifyContent:'center'
-        }
+        },
+        
     
 })
 

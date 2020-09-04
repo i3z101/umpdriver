@@ -11,7 +11,7 @@ const deliveryReducer=(state=initState, action)=>{
     switch(action.type){
         case 'ADD_DELIVERY_ORDER':
            if(!state.deliveryOrder[action.id]){
-            const newDeliveryOrder= new Delivery(new Date().toString(), action.data.serviceType, action.data.description, action.data.address, action.data.gooleMapUrl, action.data.time)
+            const newDeliveryOrder= new Delivery(action.data.id, action.data.serviceType, action.data.description, action.data.address, action.data.gooleMapUrl, action.data.time)
                         return{
                             ...state,
                             deliveryOrder: state.deliveryOrder.concat(newDeliveryOrder),

@@ -20,19 +20,21 @@ export const addDeliveryOrder= (serviceType, description, address,googleMapUrl, 
                 new Error("ERROR")
             }
             const response= await data.json()
+            dispatch({
+                type:"ADD_DELIVERY_ORDER",
+           data:{
+               id:response.name,
+               serviceType,
+               description,
+               address,
+               googleMapUrl,
+               time
+           }
+           })
         }catch(err){
             throw err
         }
-        dispatch({
-             type:"ADD_DELIVERY_ORDER",
-        data:{
-            serviceType,
-            description,
-            address,
-            googleMapUrl,
-            time
-        }
-        })
+        
        
     }
 }
@@ -44,4 +46,41 @@ export const cancelOrder= (id)=>{
             id
         })
     }
+}
+
+export const pickUpOrder= (orderDate,placeName, destination, arrivalTime, price)=>{
+    return async (dispatch)=>{
+        try{
+            const data= await fetch ('https://ump-driver.firebaseio.com/pickUpOrder.json',{
+            method:'POST',
+            'Conetnt-Type':'Application/json',
+            body: JSON.stringify({
+                orderDate,
+                placeName,
+                destination,
+                arrivalTime,
+                price
+            })
+        })
+        if(!data.ok){
+            throw new Error("STH WRONG");
+        }
+        const response= await data.json();
+        // console.log(response);
+        dispatch({
+            type:'ADD_PICKUP_ORDER',
+            data:{
+                id: response.name,
+                orderDate,
+                placeName,
+                destination,
+                arrivalTime,
+                price
+            }
+        })
+    }catch(err){
+        console.log(err);
+        throw err
+    }
+}
 }
