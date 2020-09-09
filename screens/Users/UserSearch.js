@@ -1,7 +1,7 @@
 import React from 'react'
 import {View, Text, StyleSheet} from 'react-native'
-import CustomHeaderButton from '../component/HeaderButton'
-import Color from '../constants/Color';
+import CustomHeaderButton from '../../component/HeaderButton'
+import Color from '../../constants/Color';
 import { HeaderButtons, Item } from 'react-navigation-header-buttons'
 const UserSearch= props=>{
     return <View style={styles.container}>

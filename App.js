@@ -7,10 +7,12 @@ import {Provider} from 'react-redux'
 import ReduxThunk from 'redux-thunk'
 import pickUpReducer from './store/reducers/PickUpReducer';
 import deliveryReducer from './store/reducers/DeliveryReducer';
+import driverReducer from './store/reducers/driverReducer';
 
 const rootReducers= combineReducers({
   pickUp: pickUpReducer,
-  delivery: deliveryReducer 
+  delivery: deliveryReducer,
+  driver: driverReducer
 })
 
 const store= createStore(rootReducers, applyMiddleware(ReduxThunk))

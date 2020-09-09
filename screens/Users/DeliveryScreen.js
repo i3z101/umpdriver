@@ -1,17 +1,18 @@
 import React, { useState, Fragment, useEffect, useRef } from 'react'
 import {View, Text, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, TouchableOpacity, Dimensions, ScrollView, FlatList, Animated, Easing } from 'react-native'
-import Color from '../constants/Color';
+import Color from '../../constants/Color';
 import {Picker} from '@react-native-community/picker';
 import {Formik} from 'formik'
-import {TextInput, Button} from 'react-native-paper'
+import {TextInput, Button, DataTable} from 'react-native-paper'
 import {Ionicons} from '@expo/vector-icons'
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment'
 import { useDispatch, useSelector } from 'react-redux';
-import { addDeliveryOrder, cancelOrder } from '../store/actions/actions';
+import { addDeliveryOrder, cancelOrder } from '../../store/actions/actions';
 import RBSheet from "react-native-raw-bottom-sheet";
 import LottieView from 'lottie-react-native';
 import * as yup from 'yup'
+
 
 const validationSchema= yup.object({
     description: yup.string().required().min(3),
@@ -124,31 +125,29 @@ const DeliveryScreen= props=>{
             }}>
            
             <LottieView
-            source={require('../assets/UI/checkMark.json')}
+            source={require('../../assets/UI/checkMark.json')}
             autoPlay={true}
             loop={true}
             />
             </View>
             <View >
                <Text style={{alignItems:'center', alignSelf:'center', fontSize:17, fontWeight:'500', marginVertical:15}}>Your order has been placed </Text>
-               <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center'}}>
-                   <Text style={{fontWeight:'400'}}>FROM</Text>
-                   <Text style={{fontWeight:'400'}}>TO</Text>
-                   <Text style={{fontWeight:'400'}}>TIME</Text>
+               <View >
+                  <DataTable >
+                    <DataTable.Header>
+                    <DataTable.Title nu><Text>FROM</Text></DataTable.Title>
+                    <DataTable.Title><Text>TO</Text></DataTable.Title>
+                    <DataTable.Title numeric><Text>TIME</Text></DataTable.Title>
+                    </DataTable.Header>
+                   <DataTable.Row>
+                   <DataTable.Cell ><Text style={{fontWeight:'500'}}>{delivery[0].serviceType}</Text></DataTable.Cell>
+                   <DataTable.Cell > <Text style={{ fontWeight:'500', fontSize:delivery[0].address.length>16?9:null}}>{delivery[0].address}</Text></DataTable.Cell>
+                   <DataTable.Cell numeric> <Text style={{ fontWeight:'500'}} >{delivery[0].time}</Text></DataTable.Cell>
+                   </DataTable.Row>
+                  </DataTable>
                </View>
                <View style={{flexDirection:'row', justifyContent:'space-between',marginVertical:20, marginTop:15}}>
-               
-               <Text style={{width:100,fontWeight:'500'}}>{delivery[0].serviceType}</Text>
-              
-                  
-                 
-                   <Text style={{width:100, fontWeight:'500'}}>{delivery[0].address}</Text>
-                 
-                 
-                  
-                
-                   <Text style={{ fontWeight:'500'}} >{delivery[0].time}</Text>
-                  
+
                   
                </View>
                <View style={{marginVertical:10}}>

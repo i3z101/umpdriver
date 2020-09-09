@@ -1,12 +1,10 @@
 import React from 'react'
 import {View, Text, StyleSheet, Platform,TouchableOpacity, TouchableWithoutFeedback, ImageBackground} from 'react-native'
 import { HeaderButtons, Item } from 'react-navigation-header-buttons'
-import CustomHeaderButton from '../component/HeaderButton'
+import CustomHeaderButton from '../../component/HeaderButton'
 import { DrawerActions } from '@react-navigation/native';
-import Color from '../constants/Color';
-import Card from '../component/Card';
-import { Button } from 'react-native-paper';
-import {Ionicons} from '@expo/vector-icons'
+import Color from '../../constants/Color';
+import Card from '../../component/Card';
 import LottieView from 'lottie-react-native';
 
 
@@ -20,29 +18,29 @@ const Home= props=>{
     }
     return <View style={styles.container}>
     <View style={styles.cardContainer}>
-    <Touchable onPress={()=>props.navigation.navigate('PickUp')}>
+    <Touchable onPress={()=>props.navigation.navigate('Pickup orders')}>
     <Card container={{justifyContent:'center'}}>
       <View style={styles.textContainer}>
         <Text style={styles.text}>
-        Go somewhere
+        Pickup order
         </Text>
         
         </View>
         <View style={styles.icon}>
-        <LottieView source={require('../assets/UI/location.json')}  autoPlay loop/>
+        <LottieView source={require('../../assets/UI/location.json')}  autoPlay loop/>
         </View>
     </Card>
     </Touchable>
-    <Touchable onPress={()=>props.navigation.navigate('Delivery')}>
+    <Touchable onPress={()=>props.navigation.navigate('Delivery orders')}>
     <Card container={{justifyContent:'center'}}>
     <View style={styles.textContainer}>
     <Text style={styles.text}>
-        Delivery
+        Delivery order
     </Text>
     
     </View>
     <View style={styles.icon}>
-       <LottieView source={require('../assets/UI/delivery.json')} autoPlay loop speed={1.5}/>
+       <LottieView source={require('../../assets/UI/delivery.json')} autoPlay loop speed={1.5}/>
     </View>
   </Card>
   </Touchable>

@@ -3,42 +3,32 @@ import {createStackNavigator} from '@react-navigation/stack'
 import {createMaterialBottomTabNavigator} from '@react-navigation/material-bottom-tabs'
 import {createDrawerNavigator} from '@react-navigation/drawer'
 import Filter, {FilterOption} from '../screens/Filter'
-import OrderOption, { OrderOptionStyle } from '../screens/Home'
+import DriverScreen, { driverOptions } from '../screens/Drivers/DriverScreen'
 import Profile, {ProfileOption} from '../screens/Profile'
-import UserSearch,{searchOption} from '../screens/UserSearch'
 import Color from '../constants/Color'
-import {Ionicons} from '@expo/vector-icons'
+import {Ionicons, AntDesign} from '@expo/vector-icons'
 import { Platform } from 'react-native'
-import DeliveryScreen, {DeliveryOptionStyle} from '../screens/DeliveryScreen'
-import PickUpScreen,{PickUpOptionStyle} from '../screens/pickUpScreen'
+import Home, {OrderOptionStyle} from '../screens/Drivers/HomeDriver'
+import PickupOrder, {PickUpOptionStyle} from '../screens/Drivers/PickupOrder'
 
-const UmpNavigation= props=>{
+const UmpNavigationDriver= props=>{
     const Stack= createStackNavigator()
     const Drawer= createDrawerNavigator()
     const Bottom= createMaterialBottomTabNavigator()
 
-    const OrderNavigation=()=>{
+    const OrderNavigation=()=>{ 
         return <Stack.Navigator screenOptions={{
             headerStyle:{
-                backgroundColor:Color.Primary
+                backgroundColor:Color.lightBlue
             }
         }} initialRouteName='Home'>
-        <Stack.Screen name='Home' component={OrderOption} options={OrderOptionStyle}/>
-        <Stack.Screen name='PickUp' component={PickUpScreen} options={PickUpOptionStyle}/>
-        <Stack.Screen name='Delivery' component={DeliveryScreen} options={DeliveryOptionStyle}/>
+        <Stack.Screen name='Home' component={Home} options={OrderOptionStyle}/>
+        <Stack.Screen name='Pickup orders' component={PickupOrder} options={PickUpOptionStyle}/>
+        <Stack.Screen name='Delivery orders' component={DriverScreen} options={driverOptions}/>
         </Stack.Navigator>
     }
 
-    const SearchNavigation= ()=>{
-        return<Stack.Navigator screenOptions={{
-            headerStyle:{
-                backgroundColor:Color.Primary
-            },
-            
-        }}>
-        <Stack.Screen name='Search' component={UserSearch} options={searchOption}/>
-        </Stack.Navigator>
-    }
+
 
     
     const ProfileNavigation=()=>{
@@ -64,14 +54,8 @@ const UmpNavigation= props=>{
             tabBarIcon:()=>{
                 return <Ionicons name={Platform.OS==='android'? 'md-home': 'ios-home'} size={24} color={Color.Second}/>
             },
-            tabBarColor:Color.Primary,
+            tabBarColor:Color.lightBlue,
         }} />
-        <Bottom.Screen name='Seacrh' component={SearchNavigation}  options={{
-            tabBarIcon:()=>{
-                return <Ionicons name={Platform.OS==='android'? 'md-search': 'ios-search'} size={24} color={Color.Second}/>
-            },
-            tabBarColor:Color.white
-        }}/>
         <Bottom.Screen name='Profile' component={ProfileNavigation}  options={{
             tabBarIcon:()=>{
                 return <Ionicons name={Platform.OS==='android'? 'md-person': 'ios-person'} size={24} color={Color.Second}/>
@@ -92,19 +76,23 @@ const UmpNavigation= props=>{
     }
 
     return <Drawer.Navigator drawerContentOptions={{
-        activeBackgroundColor:Color.Primary,
-        activeTintColor: Color.Second,                          
-    }}>
+        activeBackgroundColor:Color.lightBlue,
+        activeTintColor: Color.white,                          
+    }}
+    >
 
     <Drawer.Screen name='Order' component={BottomNavigator} options={{
-        gestureEnabled:false
-    }}/>
+        gestureEnabled:false,
+        drawerIcon:()=><AntDesign name="form" size={24} color={Color.Second} />
+    }}
+    />
     <Drawer.Screen name='Filter' component={FilterNavigator} options={{
-        gestureEnabled:false
+        gestureEnabled:false,
+        drawerIcon:()=><AntDesign name="filter" size={24} color={Color.Second} />
     }}/>
     
     </Drawer.Navigator>
 
 }
 
-export default UmpNavigation
+export default UmpNavigationDriver

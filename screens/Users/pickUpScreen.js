@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import {View, Text, StyleSheet, Alert} from 'react-native'
-import Color from '../constants/Color';
-import MapPreview from '../component/MapPreview';
+import Color from '../../constants/Color';
+import MapPreview from '../../component/MapPreview';
 import * as Permissions from 'expo-permissions'
 
 const PickUpScreen= props=>{

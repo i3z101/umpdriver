@@ -14,6 +14,8 @@ import MapViewDirections from 'react-native-maps-directions'
 import { useDispatch, useSelector } from 'react-redux';
 import { pickUpOrder } from '../store/actions/actions';
 import  moment from 'moment'
+import LottieView from 'lottie-react-native';
+import RBSheet from "react-native-raw-bottom-sheet";
 
 const MapPreview= props=>{
 
@@ -71,8 +73,12 @@ const MapPreview= props=>{
     const [searchPlace, setSearchPlace]= useState('')
     const [autoCompletePlacesArray, setAutoCompletePlaces]= useState([])
     const [showPlaceDetails, setShowPlaceDetails]= useState(false)
+    const [driverFound, setDriverFound]= useState(false)
     const btmSheet= useRef(Modalize)
+    const [showDriverDetails, setShowDriverDetails]= useState(false)
+    const driverDetails= useRef()
     const dispatch= useDispatch()
+
     // const changeSearchHandler= async(e)=>{
     //     try{
     //         const data= await fetch(`https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${e}&key=${vars.googleApiKey}`,{
@@ -252,9 +258,16 @@ const MapPreview= props=>{
        
     }
 
-    const addPickUpOrder= async(placeName, destination, arrivalTime, price)=>{
-            const orderDate= moment(new Date()).format("dddd, MMMM Do YYYY, h:mm:ss a");
-              dispatch(pickUpOrder(orderDate,placeName, destination, arrivalTime, price))
+    const addPickUpOrder= (placeName, destination, arrivalTime, price)=>{
+            // const orderDate= moment(new Date()).format("dddd, MMMM Do YYYY, h:mm:ss a");
+            //   dispatch(pickUpOrder(orderDate,placeName, destination, arrivalTime, price))
+            btmSheet.current.close()
+            setShowDriverDetails(true)
+            setTimeout(() => {
+                driverDetails.current.open()
+               }, 300);
+           
+           
             
     }
 
@@ -336,9 +349,6 @@ const MapPreview= props=>{
         key: vars.googleApiKey,
         language:'en'
     }}
-
-    
-
     debounce={20}
     
 
@@ -406,10 +416,50 @@ const MapPreview= props=>{
         </View>}
 />}
 
+{showDriverDetails&&<RBSheet
+    minClosingHeight={50}
+    ref={driverDetails}
+    height={220}
+    openDuration={270}
+    animationType={'slide'}
+    customStyles={{
+        container:{
+            justifyContent:'center',
+            alignItems:'center'
+        },
+    }}
+    closeOnPressMask={false}
+    closeOnPressBack={false}
 
-
-   
+    >
+    {driverFound?
+        <View>
+    <Text>DRIVER FOUND</Text>
+    <View style={{marginVertical:10}}>
+    <Button children={"close"} onPress={()=>{
+        driverDetails.current.close()
+        setDriverFound(false)
+        
+    }}/>
     </View>
+    </View>
+    :<View>
+    <View style={{width:120, height:120, alignSelf:'center'}}>
+    <LottieView source={require('../assets/UI/find-driver.json')} autoPlay loop speed={1.5}/>
+    </View>
+    <Text style={{fontSize:16, fontWeight:'600', color:Color.lightBlue}}>Looking for a driver for you...</Text>
+    <View style={{marginVertical:10}}>
+    <Button children={"find"} onPress={()=>setDriverFound(true)}/>
+    </View>
+    
+    </View>
+    }
+    </RBSheet>
+
+}
+
+    
+</View>
     
     
     
