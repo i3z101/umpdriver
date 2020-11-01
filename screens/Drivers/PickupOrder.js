@@ -5,13 +5,110 @@ import CustomHeaderButton from '../../component/HeaderButton'
 import Color from '../../constants/Color'
 import { DrawerActions } from '@react-navigation/native';
 import { Card, Avatar } from 'react-native-elements'
-import { useSelector } from 'react-redux'
-import { Button, DataTable } from 'react-native-paper'
+import { useDispatch, useSelector } from 'react-redux'
+import { Button, DataTable,Dialog } from 'react-native-paper'
 import {WaveIndicator} from 'react-native-indicators';
+import { database } from '../../configDB'
+import {fetchDriverData} from '../../dbSQL'
+import { driverCompleteOrder, driverNotCompleteOrder } from '../../store/actions/actions'
+import LottieView from 'lottie-react-native';
+import { FontAwesome5 } from '@expo/vector-icons';
+
+let orderId
+let fail;
 const DriverScreen= props=>{
 
+    //declare variables
+
     let mounted=false;
+    let spinner;
+    orderId= useSelector(state=>state.driver.driverCompleteOrder.orderId)
+    const [pickupOrders, setPickupOrders]= useState({
+        listOrders:[]
+    });
+    const [deliveryCanceled, setDeliveryCanceled]= useState(false)
+    const [refresh,setRefresh]= useState(false) 
+    const dispatch= useDispatch()
     
+  
+    //declare function
+
+    const getPickupOrders= useCallback(async()=>{
+
+        const data= database.ref('pickUpOrder')
+        
+        data.on('value', (res=>{
+            setPickupOrders({
+                listOrders:[]
+            })
+            setRefresh(true)
+            const fetchedData= res.val()
+            let orderDetails=[]
+            for(const key in fetchedData){
+                orderDetails.push({
+                    id: key,
+                    orderDate: fetchedData[key].orderDate,
+                    placeName: fetchedData[key].placeName,
+                    destination: fetchedData[key].destination,
+                    arrivalTime: fetchedData[key].arrivalTime,
+                    price: fetchedData[key].price,
+                    findDri: fetchedData[key].findDriver
+                })
+            }
+            setPickupOrders(prevState=>({
+                ...prevState,
+                listOrders: prevState.listOrders.concat(orderDetails.reverse().filter(order=>order.findDri===false))
+            }))
+            setRefresh(false)
+        }))
+    },[])
+
+    const acceptOrder= async(id)=>{
+        const dbResponse= await fetchDriverData();
+        const dbResult= await dbResponse.rows._array;
+         await database.ref('pickUpOrder/'+id).update({
+            findDriver:true,
+            driverDetails:{
+              driverFirstName: dbResult[0].driverFirstName,
+              driverLastName: dbResult[0].driverLastName,
+              driverCarName: dbResult[0].driverCarName,
+              driverCarModel: dbResult[0].driverCarModel,
+              driverLicensePlate: dbResult[0].driverLicensePlate,
+              driverCarColor:dbResult[0].driverCarColor,
+            }
+        })
+        const orderIndex= pickupOrders.listOrders.findIndex(order=>order.id===id)
+        database.ref('driverOrder/pickUpOrder/'+dbResult[0].id+'/'+id).push(JSON.parse(JSON.stringify(pickupOrders.listOrders[orderIndex])))
+        dispatch(driverNotCompleteOrder(pickupOrders.listOrders[orderIndex].id))
+        props.navigation.navigate('complete Order pickup', {
+            userName: 'Abdulaziz baqaleb',
+            id: pickupOrders.listOrders[orderIndex].id,
+            orderDate:pickupOrders.listOrders[orderIndex].orderDate,
+            placeName: pickupOrders.listOrders[orderIndex].placeName,
+            destination: pickupOrders.listOrders[orderIndex].destination,
+            arrivalTime: pickupOrders.listOrders[orderIndex].arrivalTime,
+            price: pickupOrders.listOrders[orderIndex].price,
+          });
+    }
+
+    const rejectOrder= (id)=>{
+        let updatedOrder=[]
+        const pickupOrdersCopy= [...pickupOrders.listOrders]
+        const orderIndex= pickupOrdersCopy.findIndex(order=>order.id===id)
+        if(!pickupOrdersCopy[orderIndex]){
+            return pickupOrdersCopy
+        }
+        const deletedOrder= pickupOrdersCopy.filter(order=>order.id!==id)
+        setPickupOrders(prevState=>({
+            ...prevState,
+            listOrders: deletedOrder
+        }))
+    }
+
+
+    //declare useEffect(s)
+
+
     useEffect(()=>{
         mounted= true
          
@@ -20,84 +117,49 @@ const DriverScreen= props=>{
          }
          return ()=>{
             mounted=false
-            
-            
             };
      },[])
 
+     useEffect(()=>{
+        spinner= <WaveIndicator color={Color.Primary} size={60} count={4} waveFactor={0.60} waveMode={'outline'}/>
+     },[])
+
+     useEffect(()=>{
+        if(orderId){
+            const data= database.ref('pickUpOrder/'+orderId)
+            data.once('value', response=>{
+              const result= response.val()
+              if(result){
+                if(!result.completed){
+                    props.navigation.navigate('complete Order pickup', {
+                      userName: 'Abdulaziz baqaleb',
+                      id:response.key,
+                      orderDate:result.orderDate,
+                      placeName: result.placeName,
+                      destination: result.destination,
+                      arrivalTime: result.address,
+                      price: result.price,
+                  });
+                    }
+              }
+              else{
+               dispatch(driverCompleteOrder())
+              }
+            })
+      
+        }
+       },[])
+      
+       useEffect(()=>{
+        fail= props.route.params?props.route.params.fail:null;
+         if(fail){
+          setDeliveryCanceled(true)
+         }
+        
+       },[fail, props.route.params])
     
 
-    
-    const [pickupOrders, setPickupOrders]= useState([]);
-    const [refresh,setRefresh]= useState(false) 
-
-    
   
-
-    const getPickupOrders= useCallback(async()=>{
-        try{
-            setRefresh(true)
-            let orderDetails=[]
-            const data= await fetch('https://ump-driver.firebaseio.com/pickUpOrder.json',{
-            method:'GET'
-        })
-        if(!data.ok){
-            console.log('Something wet wrong');
-            throw new Error
-        }
-        const response= await data.json()
-        for(const key in response){
-            orderDetails.unshift({
-                id: key,
-                orderDate: response[key].orderDate,
-                placeName: response[key].placeName,
-                destination:response[key].destination,
-                arrivalTime: response[key].arrivalTime,
-                price: response[key].price
-
-            })
-            
-        }
-        setPickupOrders(orderDetails)
-        setRefresh(false)
-    }catch(err){
-        console.log(err);
-        throw err
-    }
-    },[])
-
-    const acceptOrder= async(id)=>{
-        try{
-            const data= await fetch(`https://ump-driver.firebaseio.com/pickUpOrder/${id}.json`,{
-            method:'PATCH',
-            headers:{
-                'Content-Type':'Application/json'
-            },
-            body: JSON.stringify({
-                findDriver: false
-            })
-        })
-        if(!data.ok){
-            throw new Error("somewthing went wrong")
-        }
-    }catch(err){
-        console.log(err);
-        throw err
-    }
-    }
-
-    const rejectOrder= (id)=>{
-        let updatedOrder=[]
-        const pickupOrdersCopy= [...pickupOrders]
-        const orderIndex= pickupOrdersCopy.findIndex(order=>order.id===id)
-        if(!pickupOrdersCopy[orderIndex]){
-            return pickupOrdersCopy
-        }
-        const deletedOrder= pickupOrdersCopy.filter(order=>order.id!==id)
-        setPickupOrders(deletedOrder)
-    }
-
-    let spinner;
     
     if(refresh){
         spinner= <WaveIndicator color={Color.Primary} size={60} count={4} waveFactor={0.60} waveMode={'outline'}/>
@@ -109,10 +171,10 @@ const DriverScreen= props=>{
    
   
     return <View style={{flex:1}}>
-        {pickupOrders.length!==0? <FlatList
+        {pickupOrders.listOrders.length!==0? <FlatList
             onRefresh={getPickupOrders}
             refreshing={refresh}
-            data={pickupOrders}
+            data={pickupOrders.listOrders}
             keyExtractor={item=>item.id}
             renderItem={itemData=>{
                 return <Card containerStyle={styles.containerStyle}>
@@ -152,6 +214,18 @@ const DriverScreen= props=>{
                 </Card>
             }}
             />:spinner}
+
+            {deliveryCanceled&&<Dialog visible={deliveryCanceled}>
+            <Dialog.Content>
+                {Platform.OS==='ios'? <LottieView source={require('../../assets/UI/sadFace.json')} autoPlay={true} loop={true} style={{width:'70%', alignSelf:'center'}} speed={1.5}/>:<FontAwesome5 name="sad-tear" size={50} color={Color.lightBlue} style={{alignSelf:'center'}} />}
+            </Dialog.Content>
+            <Dialog.Title style={{textAlign:'center', marginTop:Platform.OS==='ios'?'-15%':0}}>
+                <Text style={{textAlign:'center', fontSize:16, fontWeight:'600'}}>Sorry for that, Pickup is canceled</Text>
+            </Dialog.Title>
+            <Dialog.Content style={{width:'80%', alignSelf:'center'}}>
+                <Button mode='contained' children="OKAY):" color={Color.lightBlue} onPress={()=>setDeliveryCanceled(false)}/>
+            </Dialog.Content>
+        </Dialog>}
       
     </View>
 }
@@ -212,7 +286,8 @@ const styles= StyleSheet.create({
 export const PickUpOptionStyle= navData=>{
     return{
         headerBackTitleVisible:false,
-        headerTintColor:Color.Second 
+        headerTintColor:Color.Second,
+        headerTitleAlign:'center'
     }
     
 }

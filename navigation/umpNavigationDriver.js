@@ -10,6 +10,8 @@ import {Ionicons, AntDesign} from '@expo/vector-icons'
 import { Platform } from 'react-native'
 import Home, {OrderOptionStyle} from '../screens/Drivers/HomeDriver'
 import PickupOrder, {PickUpOptionStyle} from '../screens/Drivers/PickupOrder'
+import OrderComplete, { OrderCompleteOption } from '../screens/Drivers/OrderCompleteScreen'
+import OrderCompletePickup from '../screens/Drivers/OrderCompleteScreenPickup'
 
 const UmpNavigationDriver= props=>{
     const Stack= createStackNavigator()
@@ -25,9 +27,12 @@ const UmpNavigationDriver= props=>{
         <Stack.Screen name='Home' component={Home} options={OrderOptionStyle}/>
         <Stack.Screen name='Pickup orders' component={PickupOrder} options={PickUpOptionStyle}/>
         <Stack.Screen name='Delivery orders' component={DriverScreen} options={driverOptions}/>
+        <Stack.Screen name= 'complete Order delivery' component={OrderComplete} options={OrderCompleteOption}/>
+        <Stack.Screen name= 'complete Order pickup' component={OrderCompletePickup} options={OrderCompleteOption}/>
         </Stack.Navigator>
     }
 
+  
 
 
     
@@ -49,10 +54,11 @@ const UmpNavigationDriver= props=>{
            tabBarColor:Color.Primary,   
        }}
        activeColor={Color.Second}
+    
         >
         <Bottom.Screen name='Home' component={OrderNavigation} options={{
             tabBarIcon:()=>{
-                return <Ionicons name={Platform.OS==='android'? 'md-home': 'ios-home'} size={24} color={Color.Second}/>
+                return <Ionicons name={Platform.OS==='android'? 'md-home': 'ios-home'} size={24} color={Color.Second} onPress={()=>console.log("jhbhj")}/>
             },
             tabBarColor:Color.lightBlue,
         }} />
@@ -88,7 +94,8 @@ const UmpNavigationDriver= props=>{
     />
     <Drawer.Screen name='Filter' component={FilterNavigator} options={{
         gestureEnabled:false,
-        drawerIcon:()=><AntDesign name="filter" size={24} color={Color.Second} />
+        drawerIcon:()=><AntDesign name="filter" size={24} color={Color.Second} 
+        />
     }}/>
     
     </Drawer.Navigator>

@@ -1,18 +1,21 @@
-import React, { useState, Fragment, useEffect, useRef } from 'react'
-import {View, Text, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, TouchableOpacity, Dimensions, ScrollView, FlatList, Animated, Easing } from 'react-native'
+import React, { useState, Fragment, useEffect, useRef, useCallback } from 'react'
+import {View, Text, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, TouchableOpacity, Dimensions, ScrollView, Alert,Image } from 'react-native'
 import Color from '../../constants/Color';
 import {Picker} from '@react-native-community/picker';
 import {Formik} from 'formik'
-import {TextInput, Button, DataTable} from 'react-native-paper'
-import {Ionicons} from '@expo/vector-icons'
+import {TextInput, Button, DataTable, Dialog} from 'react-native-paper'
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment'
 import { useDispatch, useSelector } from 'react-redux';
-import { addDeliveryOrder, cancelOrder } from '../../store/actions/actions';
+import { addDeliveryOrder, cancelDeliveryOrder, orderCancelationHandler } from '../../store/actions/actions';
 import RBSheet from "react-native-raw-bottom-sheet";
 import LottieView from 'lottie-react-native';
 import * as yup from 'yup'
-
+import {AntDesign, FontAwesome5, Ionicons,FontAwesome} from '@expo/vector-icons';
+import { database } from '../../configDB';
+import {findDriver} from '../../store/actions/actions'
+import {Avatar} from 'react-native-elements'
+import DialogDriver from '../../component/DialogDriver'
 
 const validationSchema= yup.object({
     description: yup.string().required().min(3),
@@ -20,12 +23,15 @@ const validationSchema= yup.object({
     googleMapUrl: yup.string().notRequired()
 })
 
-const DeliveryScreen= props=>{
-    let id;
+let delivery;
 
-    if(props.route.params?.id){
-        id=props.route.params?.id
-    }
+const DeliveryScreen= props=>{
+    
+    //declares variables
+
+    let modal;
+    let timer=null;
+
 
     let Touchable;
     if(Platform.OS==='android'){
@@ -39,60 +45,152 @@ const DeliveryScreen= props=>{
     const [timeValue, setTimeValue]=useState(new Date())
     const [timeDeliveryValue, setTimeDeliveryValue]=useState(null)
     const [showTime, setShowTime]= useState(false)
+    const [showTimeString,setShowTimeString]= useState(false)
     const [showGoogleMap, setShowGoogleMap]=useState(false)
     const [disabledWrite,setDisabledWrite]=useState(false)
-    const delivery= useSelector(state=>state.delivery.deliveryOrder)
-    const driverInfo= useSelector(state=>state.delivery.driver)
     const dispatch= useDispatch()
-    const[showModal, setShowModal]=useState(false)
     const [autoPlay,setHeight]=useState(0)
-    // const bottomShow= useRef(null)
+    const [showDriverFound, setShowDriverFound]= useState(false)
     const bottomShow= useRef(RBSheet)
-  
+    const [placeOrder, setPlaceOrder]=useState(false)
+    const [confirmCancel, setConfirmCancel]= useState(false)
+    const [confirmCancelBeforeAccept, setConfirmCancelBeforeAccept]= useState(false)
+    const [completedOrder, setCompletedOrder]= useState(false)
+    delivery= useSelector(state=>state.delivery.deliveryOrder)
+    const [driverInfo,setDriveInfo]= useState({
+        driverFirstName:'',
+        driverLastName:'',
+        driverCarName:'',
+        driverCarModel:'',
+        driverCarColor:'',
+        driverLicensePlate:''
+    })
 
-    // useEffect(()=>{
-    //     props.navigation.dispatch(
-    //         CommonActions.reset()
-    //     )
-    // },[])
     
-    let modal;
-
     
-
     
-
+   
+    //declares functions
     
+   
 
+    const getData= async()=>{    
+          try{
+              if(delivery.id){
+                  
+              }
+                const data= database.ref('deliveryOrder/'+delivery.id)
+                data.on('value', (res)=>{
+                    const response= res.val()
+                    if(response){
+                        if(!response.findDriver){
+                            setPlaceOrder(true)
+                            timer=  setTimeout(()=>{
+                                if(!response.findDriver){
+                                    Alert.alert("Sorry", "We couldn't find a driver for you", [{text:'okey', onPress:()=>{
+                                        setPlaceOrder(false)
+                                        data.remove(()=>{
+                                            setShowDriverFound(false)
+                                            dispatch(findDriver())
+                                        })
+                                    }}])
+                                }
+                        },180000)
+                        }
+                        if(response.findDriver){
+                            setDriveInfo({
+                                driverFirstName: response.driverDetails.driverFirstName,
+                                driverLastName: response.driverDetails.driverLastName,
+                                driverCarName: response.driverDetails.driverCarName,
+                                driverCarModel: response.driverDetails.driverCarModel,
+                                driverCarColor: response.driverDetails.driverCarColor,
+                                driverLicensePlate: response.driverDetails.driverLicensePlate
+                            })
+                            if(response.completed){
+                                setShowDriverFound(false)
+                            }
+                            setShowDriverFound(true)
+                            clearTimeout(timer)
+                            timer= null;
+                            // bottomShow.current.close()
+                        }
+                        if(response.completed){
+                            setShowDriverFound(false)
+                            setPlaceOrder(false)
+                            setCompletedOrder(true)
+                            clearTimeout(timer)
+                            timer= null;
+                        }
+                    }else{
+                        clearTimeout(timer)
+                        timer= null;
+                    }
+                })
+                
+
+            }catch(err){
+                console.log(err);
+            }
+        
+
+    }
+
+    useEffect(()=>{
+        getData()
+    },[])
+    
 
     
 
     const onChange = (event, date) => {
         const currentDate = date||timeValue;
+        setShowTime(Platform.OS === 'ios');
+        setShowTimeString(true)
         setTimeValue(currentDate);
         setTimeDeliveryValue(moment(currentDate).format('hh:mm a'))
       };
 
       const deliveryOrderHandler= async(description,address, googleMapUrl)=>{
-
-       
-         await dispatch(addDeliveryOrder(selectedService, description, address,googleMapUrl,timeDeliveryValue))
-        
-        //  setShowModal(true)
-        setDisabledWrite(true)
-        setHeight(450)
-        bottomShow.current.open()
+            const orderDate= moment(new Date()).format("dddd, MMMM Do YYYY, h:mm:ss a");
+            await dispatch(addDeliveryOrder(orderDate,selectedService, description, address,googleMapUrl,timeDeliveryValue))
+            if(delivery!==null){
+            setTimeout(()=>{
+            setPlaceOrder(true)
+            setDisabledWrite(true)
+            setHeight(450)
+            bottomShow.current.open()
+            getData()
+            },100)
+            }
+            
+            
+           
       }
 
-      const cancelOrderHandler=(id)=>{
-          dispatch(cancelOrder(id))
-          
-        setHeight(0)
-        // bottomShow.current.close()
+      //AFTER DRIVER ACCEPTS ORDER
+      const cancelOrderHandler=(id)=>{ 
+          dispatch(cancelDeliveryOrder(id))
+          setConfirmCancel(false)
+          setShowDriverFound(false)
+          dispatch(findDriver())
+          setHeight(0)
+    
+      }
+
+      //BEFORE DRIVER ACCEPTS ORDER
+      const orderCancelation=(id)=>{
+          dispatch(orderCancelationHandler(id))
+          setPlaceOrder(false)
+          setDisabledWrite(false)
+          setConfirmCancelBeforeAccept(false)
       }
 
 
-      if(delivery.length>0){
+
+
+
+      if(delivery){
+         
         modal= (
             
            <RBSheet
@@ -124,11 +222,7 @@ const DeliveryScreen= props=>{
                 marginVertical:7
             }}>
            
-            <LottieView
-            source={require('../../assets/UI/checkMark.json')}
-            autoPlay={true}
-            loop={true}
-            />
+            {Platform.OS==='ios'?<LottieView source={require('../../assets/UI/checkMark.json')} autoPlay={true} loop={true}/>:<AntDesign name="checkcircleo" size={50} color={Color.lightBlue} />}
             </View>
             <View >
                <Text style={{alignItems:'center', alignSelf:'center', fontSize:17, fontWeight:'500', marginVertical:15}}>Your order has been placed </Text>
@@ -140,9 +234,9 @@ const DeliveryScreen= props=>{
                     <DataTable.Title numeric><Text>TIME</Text></DataTable.Title>
                     </DataTable.Header>
                    <DataTable.Row>
-                   <DataTable.Cell ><Text style={{fontWeight:'500'}}>{delivery[0].serviceType}</Text></DataTable.Cell>
-                   <DataTable.Cell > <Text style={{ fontWeight:'500', fontSize:delivery[0].address.length>16?9:null}}>{delivery[0].address}</Text></DataTable.Cell>
-                   <DataTable.Cell numeric> <Text style={{ fontWeight:'500'}} >{delivery[0].time}</Text></DataTable.Cell>
+                   <DataTable.Cell ><Text style={{fontWeight:'500'}}>{delivery.serviceType}</Text></DataTable.Cell>
+                   <DataTable.Cell > <Text style={{ fontWeight:'500', fontSize: delivery.address&&delivery.address.length>16?9:null}}>{delivery.address?delivery.address:null}</Text></DataTable.Cell>
+                   <DataTable.Cell numeric> <Text style={{ fontWeight:'500'}} >{delivery.time}</Text></DataTable.Cell>
                    </DataTable.Row>
                   </DataTable>
                </View>
@@ -163,7 +257,7 @@ const DeliveryScreen= props=>{
                       primary:Color.lightBlue
                   },
                   roundness:10
-              }} onPress={()=>cancelOrderHandler(delivery[0].id)}
+              }} onPress={()=>bottomShow.current.close()}
               style={{padding:2}}
               />
             </View>
@@ -189,7 +283,9 @@ const DeliveryScreen= props=>{
         address:'',
         googleMapUrl:''
     }}
-    onSubmit={(values)=>deliveryOrderHandler(values.description,values.address, values.googleMapUrl)}
+    onSubmit={(values)=>{
+        deliveryOrderHandler(values.description,values.address, values.googleMapUrl)
+    }}
     validationSchema={validationSchema}
     validateOnBlur={true}
     >
@@ -218,7 +314,7 @@ const DeliveryScreen= props=>{
                 </Picker> : <Touchable onPress={()=>setShowPicker(true)}>
                     <View style={styles.pickerButton} >
                         <Text>Select a service: </Text>
-                        <Ionicons name={Platform.OS==='android'?'md--arrow-down':'ios-arrow-down'} size={25}/>
+                        <Ionicons name={Platform.OS==='android'?'md-arrow-down':'ios-arrow-down'} size={25}/>
                     </View>
                 </Touchable>}
             </View>
@@ -297,7 +393,7 @@ const DeliveryScreen= props=>{
                   /> : <Touchable onPress={()=>setShowGoogleMap(true)}>
                         <View style={styles.pickerButton} >
                             <Text>Oustside the campus? insert google map address</Text>
-                            <Ionicons name={Platform.OS==='android'?'md--arrow-down':'ios-arrow-down'} size={25}/>
+                            <Ionicons name={Platform.OS==='android'?'md-arrow-down':'ios-arrow-down'} size={25}/>
                         </View>
                     </Touchable>}
              </View>
@@ -305,27 +401,30 @@ const DeliveryScreen= props=>{
              <Text style={styles.error}>{formikProps.errors.googleMapUrl}</Text>
             </View>
               </View>
-            <View style={styles.form}>
+            <View style={styles.formTime}>
             {showTime? <DateTimePicker
-                    display='default'
-                    value={timeValue}
+                    display={'clock'}
                     mode='time'
+                    value={timeValue}
                     is24Hour={true}
                     onChange={onChange}
                     textColor={Color.lightBlue}
-                    
+                    onPre
                     
                 /> : <Touchable onPress={()=>setShowTime(true)}>
                     <View style={styles.pickerButton} >
                         <Text>Select the expected time: </Text>
-                        <Ionicons name={Platform.OS==='android'?'md--arrow-down':'ios-arrow-down'} size={25}/>
+                        <Ionicons name={Platform.OS==='android'?'md-arrow-down':'ios-arrow-down'} size={25}/>
                     </View>
                 </Touchable>}
+                {Platform.OS==='android'&& showTimeString && <View style={styles.pickerButtonText}>
+                        <Text style={{color:Color.lightBlue}}>{new Date(timeValue).toLocaleTimeString()}</Text>
+                    </View>}
             </View>
 
             <View style={styles.butonContainer}>
                 <Button
-                // disabled={bottomShow.current?true:false}
+                disabled={placeOrder?true:false}
                 children='place order'
                 mode='contained'
                 onPress={()=>formikProps.handleSubmit()}
@@ -338,13 +437,10 @@ const DeliveryScreen= props=>{
                 }}
                 />
                 <Button
-                // disabled={bottomShow.current?true:false}
+                disabled={placeOrder?false:true}
                 children='cancel'
                 mode='contained'
-                onPress={()=>{
-                    props.navigation.goBack()
-                    cancelOrderHandler()
-                }}
+                onPress={()=>setConfirmCancelBeforeAccept(true)}
                 style={styles.button}
                 theme={{
                     colors:{
@@ -362,15 +458,59 @@ const DeliveryScreen= props=>{
     </Formik>
    
     {modal}
-    
-    
-       
-    
-       
-    
-       
-  
    
+    <DialogDriver visible={showDriverFound} 
+        driverFirstName={driverInfo.driverFirstName} 
+        driverLastName={driverInfo.driverLastName}
+        driverCarName={driverInfo.driverCarName}
+        driverCarModel={driverInfo.driverCarModel}
+        driverCarColor={driverInfo.driverCarColor}
+        driverLicensePlate={driverInfo.driverLicensePlate}
+        source={require('../../assets/favicon.png')}
+        onPressCancel={()=>{
+            //setShowDriverFound(false)
+            setConfirmCancel(true)
+        }}
+        onPressAwesome={()=>{
+            setShowDriverFound(false)
+            bottomShow.current.close()
+            dispatch(findDriver())
+        }}
+        />
+
+        {confirmCancel&&<Dialog visible={confirmCancel}>
+                <Dialog.Title style={{textAlign:'center'}}>
+                    <Text>Are you sure to cancel the order?</Text>
+                </Dialog.Title>
+                <Dialog.Actions style={{justifyContent:'space-around'}}>
+                    <Button mode='outlined' children="No, I'm kidding" color={Color.lightBlue} onPress={()=>setConfirmCancel(false)}/>
+                    <Button mode='contained' children="Yes, i'm sure" color={'#ff3333'} onPress={()=>cancelOrderHandler(delivery.id)}/>
+                </Dialog.Actions>
+            </Dialog>}
+
+
+        {confirmCancelBeforeAccept&&<Dialog visible={confirmCancelBeforeAccept}>
+        <Dialog.Title style={{textAlign:'center'}}>
+            <Text>Are you sure to cancel the order?</Text>
+        </Dialog.Title>
+        <Dialog.Actions style={{justifyContent:'space-around'}}>
+            <Button mode='outlined' children="No, I'm kidding" color={Color.lightBlue} onPress={()=>setConfirmCancelBeforeAccept(false)}/>
+            <Button mode='contained' children="Yes, i'm sure" color={'#ff3333'} onPress={()=>orderCancelation(delivery.id)}/>
+        </Dialog.Actions>
+    </Dialog>}
+
+    {completedOrder&&<Dialog visible={completedOrder}>
+        <Dialog.Content>
+            {Platform.OS==='ios'? <LottieView source={require('../../assets/UI/happyFace.json')} autoPlay={true} loop={true} style={{width:'70%', alignSelf:'center'}}/>:<FontAwesome name="hand-peace-o" size={50} color={Color.lightBlue} style={{alignSelf:'center'}}/>}
+        </Dialog.Content>
+        <Dialog.Title style={{textAlign:'center', marginTop:Platform.OS==='ios'?'-15%':0}}>
+            <Text style={{textAlign:'center', fontSize:16, fontWeight:'600'}}>WOOW,YOU'VE COMPLETED YOUR ORDER</Text>
+        </Dialog.Title>
+        <Dialog.Content style={{width:'80%', alignSelf:'center'}}>
+            <Button mode='contained' children="Great!!" color={Color.lightBlue} onPress={()=>setCompletedOrder(false)}/>
+        </Dialog.Content>
+    </Dialog>}
+
     </KeyboardAvoidingView>
     
     </TouchableWithoutFeedback>
@@ -391,12 +531,20 @@ const styles= StyleSheet.create({
         padding:10,
         
     },
+    formTime:{
+        padding:Platform.OS==='android'? 10: 10,
+        marginBottom:Platform.OS==='android'?15:10
+    },
     pickerStyle:{
         width:'100%',
     },
     pickerButton:{
         flexDirection:'row',
         justifyContent:'space-between'
+    },
+    pickerButtonText:{
+        alignSelf:'center',
+        marginTop:5
     },
     butonContainer:{
         flexDirection:'row',
@@ -430,8 +578,12 @@ export const DeliveryOptionStyle= navData=>{
            backgroundColor:Color.white
        },
        gestureEnabled:false,
-       headerLeft:null
+       headerLeft:null,
+       headerTitleAlign:'center' 
     }
 }
+
+
+
 
 export default DeliveryScreen

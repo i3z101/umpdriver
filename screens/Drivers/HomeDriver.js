@@ -1,24 +1,167 @@
-import React from 'react'
-import {View, Text, StyleSheet, Platform,TouchableOpacity, TouchableWithoutFeedback, ImageBackground} from 'react-native'
+import React, { useEffect, useState } from 'react'
+import {View, Text, StyleSheet, Platform,TouchableOpacity, TouchableHighlight, ImageBackground} from 'react-native'
 import { HeaderButtons, Item } from 'react-navigation-header-buttons'
 import CustomHeaderButton from '../../component/HeaderButton'
 import { DrawerActions } from '@react-navigation/native';
 import Color from '../../constants/Color';
 import Card from '../../component/Card';
 import LottieView from 'lottie-react-native';
-
+import { Octicons,AntDesign } from '@expo/vector-icons';
+import androidIconsStyles from '../../constants/androidIconsStyles';
+import { database } from '../../configDB';
+import { Button, TextInput } from 'react-native-paper';
+import { fetchDriverData,insertDriverDetails } from '../../dbSQL';
+import { isEmptyArray } from 'formik';
+import { set } from 'react-native-reanimated';
+import { useDispatch } from 'react-redux';
+import { logOut } from '../../store/authAction/authAction';
 
 const Home= props=>{
+
+    const [completeForm, setCompleteForm]= useState(true)
+    const [driverDetails, setDriverDetails]= useState({
+        driverFirstName:'',
+        driverLastName:'',
+        driverCarName:'',
+        driverCarModel:'',
+        driverLicensePlate:'',
+        driverCarColor:''
+    })
     let Touchable;
+    let home;
+    
+
+    
+
+    useEffect(()=>{
+        const fetchDriver= async()=>{
+             const dbResponse= await fetchDriverData();
+             if(dbResponse){
+                  const dbResult= await dbResponse.rows._array;
+                  if(isEmptyArray(dbResult)){
+                      setCompleteForm(false)
+                  }
+                  else{
+                      if(dbResult[0].completed){
+                          setCompleteForm(true)
+                      }
+                      else{
+                          setCompleteForm(false)
+                      }
+                  }
+             }
+             
+        
+        }
+       fetchDriver()
+    },[completeForm])
+
+    const handleDriverData=(inputName,inputValu)=>{
+        setDriverDetails(prevState=>({
+            ...prevState,
+            [inputName]:inputValu
+        }))
+    }
+
+    const handleSubmitDriverData=async()=>{
+        for (const key in driverDetails) {
+            if(driverDetails[key]===''){
+                console.log("error in your object");
+                return
+            }
+        }
+        await insertDriverDetails(driverDetails.driverFirstName,driverDetails.driverLastName,driverDetails.driverCarName,driverDetails.driverCarModel,driverDetails.driverLicensePlate,driverDetails.driverCarColor,true)
+        setCompleteForm(true)
+    }
+  
     if(Platform.OS==='android'){
-        Touchable= TouchableWithoutFeedback
+        Touchable= TouchableHighlight
     }
     else{
         Touchable= TouchableOpacity
     }
-    return <View style={styles.container}>
+
+
+    if(!completeForm){
+            home= (
+                <View>
+                    <View style={styles.driversContainer}>
+                        <TextInput mode='outlined' label="Driver first name" maxLength={15} theme={{
+                            roundness:10,
+                            colors:{
+                                primary:Color.Primary
+                            }
+                        }}
+                        style={{width:'50%'}}
+                        value={driverDetails.driverFirstName}
+                        onChangeText={(inputvalue)=>handleDriverData('driverFirstName',inputvalue)}
+                        />
+                        <TextInput mode='outlined' label="Driver last name" maxLength={15} theme={{
+                            roundness:10,
+                            colors:{
+                                primary:Color.Primary
+                            }
+                        }}
+                        style={{width:'45%'}}
+                        value={driverDetails.driverLastName}
+                        onChangeText={(inputvalue)=>handleDriverData('driverLastName', inputvalue)}
+                        />
+                    </View>
+                    <View style={styles.driversContainer}>
+                        <TextInput mode='outlined' label="Driver car name" maxLength={15} theme={{
+                            roundness:10,
+                            colors:{
+                                primary:Color.Primary
+                            }
+                        }}
+                        style={{width:'50%'}}
+                        value={driverDetails.driverCarName}
+                        onChangeText={(inputvalue)=>handleDriverData('driverCarName',inputvalue)}
+                        />
+                        <TextInput mode='outlined' label="Driver car model" maxLength={15} theme={{
+                            roundness:10,
+                            colors:{
+                                primary:Color.Primary
+                            }
+                        }}
+                        style={{width:'45%'}}
+                        value={driverDetails.driverCarModel}
+                        onChangeText={(inputvalue)=>handleDriverData('driverCarModel',inputvalue)}
+                        keyboardType='numeric'
+                        />
+                        
+                    </View>
+                    <View style={styles.driversContainer}>
+                        <TextInput mode='outlined' label="Driver lisence plate" maxLength={15} theme={{
+                            roundness:10,
+                            colors:{
+                                primary:Color.Primary
+                            }
+                        }}
+                        style={{width:'50%'}}
+                        value={driverDetails.driverLicensePlate}
+                        onChangeText={(inputvalue)=>handleDriverData('driverLicensePlate',inputvalue)}
+                        />
+                        <TextInput mode='outlined' label="Driver car color" maxLength={15} theme={{
+                            roundness:10,
+                            colors:{
+                                primary:Color.Primary
+                            }
+                        }}
+                        style={{width:'45%'}}
+                        value={driverDetails.driverCarColor}
+                        onChangeText={(inputvalue)=>handleDriverData('driverCarColor',inputvalue)}
+                        />
+                    </View>
+                    <Button mode='contained' children={"Save"} color={Color.lightBlue} style={styles.button} onPress={handleSubmitDriverData}/>
+                </View>
+            )
+    }
+    else{
+        home= (
+            <View style={styles.container}>
     <View style={styles.cardContainer}>
-    <Touchable onPress={()=>props.navigation.navigate('Pickup orders')}>
+    <Touchable onPress={()=>props.navigation.navigate('Pickup orders')} underlayColor={Color.white} style={{borderRadius: 10}}>
     <Card container={{justifyContent:'center'}}>
       <View style={styles.textContainer}>
         <Text style={styles.text}>
@@ -27,11 +170,11 @@ const Home= props=>{
         
         </View>
         <View style={styles.icon}>
-        <LottieView source={require('../../assets/UI/location.json')}  autoPlay loop/>
+        {Platform.OS==='ios'?<LottieView source={require('../../assets/UI/location.json')}  autoPlay loop/>:<Octicons name="location" size={40} color={Color.lightBlue} style={androidIconsStyles.android}/>}
         </View>
     </Card>
     </Touchable>
-    <Touchable onPress={()=>props.navigation.navigate('Delivery orders')}>
+    <Touchable onPress={()=>props.navigation.navigate('Delivery orders')} underlayColor={Color.white} style={{borderRadius: 10}}>
     <Card container={{justifyContent:'center'}}>
     <View style={styles.textContainer}>
     <Text style={styles.text}>
@@ -40,13 +183,17 @@ const Home= props=>{
     
     </View>
     <View style={styles.icon}>
-       <LottieView source={require('../../assets/UI/delivery.json')} autoPlay loop speed={1.5}/>
+    {Platform.OS==='ios'?<LottieView source={require('../../assets/UI/delivery.json')} autoPlay loop speed={1.5}/>: <AntDesign name="shoppingcart" size={40} color={Color.lightBlue} style={androidIconsStyles.android}/>}
     </View>
   </Card>
   </Touchable>
     </View>
    
     </View>
+        )
+    }
+
+    return home
 }
 
 const styles= StyleSheet.create({
@@ -74,10 +221,23 @@ const styles= StyleSheet.create({
     icon:{
         width:'100%', 
         height:'65%', 
-        alignSelf:'center'}
+        alignSelf:'center'
+    },
+    driversContainer:{
+        flexDirection:'row',
+        justifyContent:'space-between',
+        margin:5,
+        marginVertical:20
+    },
+    button:{
+        width:'65%',
+        alignSelf:'center',
+        marginTop:20
+    }
 })
 
 export const OrderOptionStyle= navData=>{
+    const dispatch= useDispatch()
     return{
        headerLeft: ()=>(
            <HeaderButtons HeaderButtonComponent={CustomHeaderButton}>
@@ -90,7 +250,20 @@ export const OrderOptionStyle= navData=>{
            />
            </HeaderButtons>
        ),
-       headerTintColor: Color.Second 
+       headerRight: ()=>(
+        <HeaderButtons HeaderButtonComponent={CustomHeaderButton}>
+        <Item
+        IconComponent={AntDesign}
+        iconName={'poweroff'}
+        title='log out'
+        onPress={()=>{dispatch(logOut())}}
+        color={Color.Second}
+        iconSize={24}
+        />
+        </HeaderButtons>
+    ),
+       headerTintColor: Color.Second,
+       headerTitleAlign:'center' 
     }
    
 }

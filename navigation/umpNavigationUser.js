@@ -1,14 +1,14 @@
 import React, { useState } from 'react'
 import {createStackNavigator} from '@react-navigation/stack'
 import {createMaterialBottomTabNavigator} from '@react-navigation/material-bottom-tabs'
-import {createDrawerNavigator} from '@react-navigation/drawer'
+import {createDrawerNavigator, DrawerItemList} from '@react-navigation/drawer'
 import Filter, {FilterOption} from '../screens/Filter'
 import Home, { OrderOptionStyle } from '../screens/Users/Home'
 import Profile, {ProfileOption} from '../screens/Profile'
 import UserSearch,{searchOption} from '../screens/Users/UserSearch'
 import Color from '../constants/Color'
 import {Ionicons} from '@expo/vector-icons'
-import { Platform } from 'react-native'
+import { Platform, Text } from 'react-native'
 import DeliveryScreen, {DeliveryOptionStyle} from '../screens/Users/DeliveryScreen'
 import PickUpScreen,{PickUpOptionStyle} from '../screens/Users/pickUpScreen'
 
@@ -94,7 +94,8 @@ const UmpNavigationUser= props=>{
     return <Drawer.Navigator drawerContentOptions={{
         activeBackgroundColor:Color.Primary,
         activeTintColor: Color.Second,                          
-    }}>
+    }}
+    >
 
     <Drawer.Screen name='Order' component={BottomNavigator} options={{
         gestureEnabled:false

@@ -1,6 +1,7 @@
 export default class Delivery{
-    constructor(id, serviceType, description, address,googleMapUrl, time){
+    constructor(id,orderDate, serviceType, description, address,googleMapUrl, time){
         this.id= id,
+        this.orderDate= orderDate,
         this.serviceType= serviceType,
         this.description= description,
         this.address=address,

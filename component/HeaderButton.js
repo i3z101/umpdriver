@@ -5,7 +5,7 @@ import {HeaderButton} from 'react-navigation-header-buttons'
 const CustomHeaderButton= props=>{
     return <HeaderButton
     {...props}
-    IconComponent={Ionicons}
+    //IconComponent={Ionicons}
     // iconSize={24}
     />
 }

@@ -1,11 +1,33 @@
 import Delivery from "../../modal/delivery-class"
 
 const initState= {
-    orderList: [ new Delivery(Math.floor(Math.random()*10).toString(), "UMP", "test", "test","","10:00 pm"), new Delivery(new Date().toString(), "NIRWANA", "test", "KK4","","10:00 AM")]
+    driverCompleteOrder:{
+        orderId:'',
+        completed: true
+    }
 }
 
 const driverReducer= (state=initState, action)=>{
-    return state
+    switch(action.type){
+        case 'DRIVER_NOT_COMPLETE_ORDER':
+            return{
+                ...state,
+                driverCompleteOrder:{
+                    orderId: action.id,
+                    completed: false
+                }
+            }
+            case 'DRIVER_COMPLETE_ORDER':
+                return{
+                    driverCompleteOrder:{
+                        orderId: '',
+                        completed: true
+                    }
+                }
+        default:
+        return state 
+    }
+    
 }
 
 export default driverReducer

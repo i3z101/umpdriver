@@ -3,8 +3,12 @@ import {View, Text, StyleSheet, Alert} from 'react-native'
 import Color from '../../constants/Color';
 import MapPreview from '../../component/MapPreview';
 import * as Permissions from 'expo-permissions'
+import {useSelector} from 'react-redux'
 
+let delivery;
+let mount= false
 const PickUpScreen= props=>{
+    delivery= useSelector(state=>state.pickUp.pickUpOrder)
     const getPermission= async()=>{
         const status= await Permissions.askAsync(Permissions.LOCATION)
         if(status.status!=='granted'){
@@ -21,12 +25,18 @@ const PickUpScreen= props=>{
     }
 
     useEffect(()=>{
-        permitted()
+        mount=true
+        if(mount){
+            permitted()
+        }
+        return ()=>mount=false
     },[])
+
+
 
     return <View style={styles.container}>
   
-    <MapPreview/>
+    <MapPreview delivery={delivery.id}/>
     
     </View>
 }

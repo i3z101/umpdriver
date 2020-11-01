@@ -2,35 +2,31 @@ import React, { useState, useEffect, useRef } from 'react'
 import {View, StyleSheet, Platform, TouchableOpacity, Alert, Dimensions, Modal} from 'react-native'
 import MapView, {Marker, Callout, Polyline} from 'react-native-maps'
 import Color from '../constants/Color'
-import { MaterialIcons,AntDesign } from '@expo/vector-icons';
+import { MaterialIcons,AntDesign, Ionicons, FontAwesome} from '@expo/vector-icons';
 import vars from '../helper' 
 import GoogleAC from '../modal/autoComplete-class'
-import {Text, Button, DataTable} from 'react-native-paper'
+import {Text, Button, DataTable, Dialog} from 'react-native-paper'
 import {GooglePlacesAutocomplete} from 'react-native-google-places-autocomplete'
 import * as Location from 'expo-location'
 import { TouchableWithoutFeedback } from 'react-native-gesture-handler'
 import {Modalize} from 'react-native-modalize'
 import MapViewDirections from 'react-native-maps-directions'
 import { useDispatch, useSelector } from 'react-redux';
-import { pickUpOrder } from '../store/actions/actions';
+import { findDriver, pickUpOrder, cancelPickupOrder } from '../store/actions/actions';
 import  moment from 'moment'
 import LottieView from 'lottie-react-native';
 import RBSheet from "react-native-raw-bottom-sheet";
+import {database} from '../configDB'
+import {Avatar} from 'react-native-elements'
+import DialogDriver from './DialogDriver';
 
+
+let pickupOrder
+let mount=false
+let timer;
 const MapPreview= props=>{
-
-    const width= Dimensions.get('window').width
-    const height= Dimensions.get('window').height
-    const aspectRatio= width/height
-
-    let markCurrentPositionConfig;
-    let markDestinationConfig
-
-    let Touch= TouchableOpacity
-
-    if(Platform.OS==='android'){
-        Touch= TouchableWithoutFeedback
-    }
+    pickupOrder=useSelector(state=>state.pickUp.pickUpOrder)
+    
 
     const getCurrentLocation= async()=>{
         const status= await Location.requestPermissionsAsync()
@@ -45,15 +41,17 @@ const MapPreview= props=>{
     }
 
     useEffect(()=>{
-      
-       getCurrentLocation()
+        mount=true
+        if(mount){
+            getCurrentLocation()
+        }
+       return ()=>mount=false
     },[])
 
    
   
 
- 
-
+    
     const [currentPosition, setCurrentPosition]= useState({
         lat:null,
         lng:null
@@ -68,51 +66,44 @@ const MapPreview= props=>{
         fullPrice:null,
     })
 
-    
-   
     const [searchPlace, setSearchPlace]= useState('')
     const [autoCompletePlacesArray, setAutoCompletePlaces]= useState([])
+     pickupOrder= useSelector(state=>state.pickUp.pickUpOrder)
     const [showPlaceDetails, setShowPlaceDetails]= useState(false)
     const [driverFound, setDriverFound]= useState(false)
     const btmSheet= useRef(Modalize)
     const [showDriverDetails, setShowDriverDetails]= useState(false)
     const driverDetails= useRef()
     const dispatch= useDispatch()
+    const [confirmCancel, setConfirmCancel]= useState(false)
+    const [completedOrder, setCompletedOrder]= useState(false)
+    const [driverInfo,setDriveInfo]= useState({
+        driverName:'',
+        driverCarName:'',
+        driverCarModel:'',
+        driverCarColor:'',
+        driverLicensePlate:''
+    })
+    
 
-    // const changeSearchHandler= async(e)=>{
-    //     try{
-    //         const data= await fetch(`https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${e}&key=${vars.googleApiKey}`,{
-    //             method:'POST'
-    //         })
-    //         if(!data.ok){
-    //             throw new Error("something wrong")
-    //         }
-    //         const response= await data.json()
-    //         // console.log(response.predictions.map(d=>d.place_id));
-    //         // console.log(response.predictions.map(d=>d.description));
-    //         if(response.status=="ZERO_RESULTS"){
-    //             return;
-    //         }
-    //         if(response.status=="INVALID_REQUEST"){
-    //             return;
-    //         }
-         
-    //         let autoCompletePlaces=[]
-           
-    //         const autoCompleteGoogle= new GoogleAC(response.predictions[response.predictions.length-1].place_id, response.predictions[response.predictions.length-1].description)
-    //         autoCompletePlaces.unshift(autoCompleteGoogle)
-    //         setAutoCompletePlaces(autoCompletePlaces)
-    //         setSearchPlace(e)
-    //         if(e.length<=1){
-    //             autoCompletePlaces=[]
-    //             setAutoCompletePlaces([])
-    //         }
-    //     }catch(err){
-    //         console.log(err);
-    //         throw err
-    //     }   
-      
-    // }
+    const width= Dimensions.get('window').width
+    const height= Dimensions.get('window').height
+    const aspectRatio= width/height
+
+    let markCurrentPositionConfig;
+    let markDestinationConfig
+
+    let Touch= TouchableOpacity
+
+    if(Platform.OS==='android'){
+        Touch= TouchableWithoutFeedback
+    }
+
+    
+
+    
+    
+
 
 
 
@@ -188,7 +179,8 @@ const MapPreview= props=>{
      
        setTimeout(() => {
         btmSheet.current.open()
-       }, 850);
+       }, 100);
+       
        
     }catch(err){
         console.log(err);
@@ -197,50 +189,73 @@ const MapPreview= props=>{
       
     }
 
-    // const SubmitPlaceHandler= async ()=>{
-    //     let lat, lng
-    //     if(searchPlace){
-    //         try{
-    //             const data= await fetch(`https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${searchPlace}&inputtype=textquery&fields=formatted_address,name,geometry&key=${vars.googleApiKey}`,{
-    //             method:'GET'
-    //         })
-    //             if(!data.ok){
-    //                 throw new Error("Something wrong")
-    //             }
-    //             const response= await data.json()
-               
+
+
     
-    //             // console.log(response);
+
     
-    //              lat=  await response.candidates[response.candidates.length-1].geometry.location.lat
-    //              lng= await response.candidates[response.candidates.length-1].geometry.location.lng
-            
-                
-            
-    //            setSelectedPlace({
-    //             name:searchPlace,  
-    //             lat: lat,
-    //             lng:lng
-    //         })
+    
+    const getData= async()=>{
 
-    //         setSearchPlace('')
+        try{
+                const data= database.ref('pickUpOrder/'+pickupOrder.id)
+                data.on('value', (res)=>{
+                const response= res.val()
+                if(response){
+                        if(!response.findDriver){
+                            timer= setTimeout(()=>{
+                                if(!response.findDriver){
+                                    Alert.alert("Sorry", "We couldn't find a driver for you", [{text:'okey', onPress:()=>{
+                                        data.remove(()=>{
+                                            //driverDetails.current.close()
+                                            setDriverFound(false);
+                                            setShowDriverDetails(false)
+                                            clearTimeout(timer)
+                                            timer=null
+                                            //dispatch(findDriver())
+                                            btmSheet.current.close();
+                                        })
+                                    }}])
+                                }
+                            
+                    }, 180000)
+                        }
+                        
+                   
+                    if(response.findDriver){
+                        setDriveInfo({
+                            driverFirstName: response.driverDetails.driverFirstName,
+                            driverLastName: response.driverDetails.driverLastName,
+                            driverCarName: response.driverDetails.driverCarName,
+                            driverCarModel: response.driverDetails.driverCarModel,
+                            driverCarColor: response.driverDetails.driverCarColor,
+                            driverLicensePlate: response.driverDetails.driverLicensePlate
+                        })
+                        if(response.completed){
+                            setDriverFound(false)
+                        }
+                        setDriverFound(true)
+                        driverDetails.current.close()    
+                        clearTimeout(timer)
+                        timer= null;
+                        if(response.completed){
+                            setDriverFound(false)
+                            setCompletedOrder(true)
+                        }
+                    }        
+                }
+            })
+
+            
+
            
 
-            
-    //         setAutoCompletePlaces([])
-
-           
-    //         // const placeId= response.candidates[response.candidates.length-1].place_id
-           
-    //     //    const selectPlace= await fetch(`https://maps.googleapis.com/maps/api/place/details/json?place_id=ChIJN1t_tDeuEmsRUsoyG83frY4&fields=name,rating,formatted_phone_number&key=YOUR_API_KEY`)
-    //     }catch(err){
-    //         console.log(err);
-    //         throw err
-    //     }
-    //     }
-     
-    // }
-
+        }catch(err){
+            console.log(err);
+        }
+    }
+    
+    
 
 
     let mapConfig={
@@ -258,18 +273,27 @@ const MapPreview= props=>{
        
     }
 
-    const addPickUpOrder= (placeName, destination, arrivalTime, price)=>{
-            // const orderDate= moment(new Date()).format("dddd, MMMM Do YYYY, h:mm:ss a");
-            //   dispatch(pickUpOrder(orderDate,placeName, destination, arrivalTime, price))
-            btmSheet.current.close()
-            setShowDriverDetails(true)
-            setTimeout(() => {
-                driverDetails.current.open()
-               }, 300);
-           
-           
-            
+    const addPickUpOrder= async(placeName, destination, arrivalTime, price)=>{
+        
+        const orderDate= moment(new Date()).format("dddd, MMMM Do YYYY, h:mm:ss a");
+        await dispatch(pickUpOrder(orderDate,placeName, destination, arrivalTime, price))
+        if(pickupOrder!==null){
+             btmSheet.current.close()
+        setShowDriverDetails(true)
+        setTimeout(() => {
+            driverDetails.current.open()
+            getData()
+           }, 500);
+
+        }   
+}
+
+    const cancelOrderHandler=(id)=>{
+        dispatch(cancelPickupOrder(id))
+        setConfirmCancel(false)
+        setDriverFound(false)
     }
+    
 
    
 
@@ -288,7 +312,7 @@ const MapPreview= props=>{
     }
 
     return <View style={styles.mapContainer}>
-    <MapView style={styles.mapContainer} region={mapConfig} provider={'google'}  onPress={pickPlace} onMarkerDragEnd={pickPlace} mapType='standard' >
+    <MapView style={styles.mapContainer} region={mapConfig} provider={'google'}  onPress={pickPlace} onMarkerDragEnd={pickPlace} mapType='standard'>
    
     {currentPosition.lat&&currentPosition.lng&&<Marker title='here' coordinate={markCurrentPositionConfig} pinColor={Color.Primary} />}
     
@@ -361,6 +385,46 @@ const MapPreview= props=>{
 <MaterialIcons name="my-location" size={30} color={Color.Second} style={{padding:12}}/>
 </Touch>
 
+{driverFound&& <DialogDriver visible={driverFound} 
+        driverFirstName={driverInfo.driverFirstName} 
+        driverLastName={driverInfo.driverLastName}
+        driverCarName={driverInfo.driverCarName}
+        driverCarModel={driverInfo.driverCarModel}
+        driverCarColor={driverInfo.driverCarColor}
+        driverLicensePlate={driverInfo.driverLicensePlate}
+        source={require('../assets/favicon.png')}
+        onPressCancel={()=>setConfirmCancel(true)}
+        onPressAwesome={()=>{
+            setDriverFound(false)
+            btmSheet.current.close()
+            dispatch(findDriver())
+        }}
+        />}
+
+        {confirmCancel&&<Dialog visible={confirmCancel}>
+        <Dialog.Title style={{textAlign:'center'}}>
+            <Text>Are you sure to cancel the order?</Text>
+        </Dialog.Title>
+        <Dialog.Actions style={{justifyContent:'space-around'}}>
+            <Button mode='outlined' children="No, I'm kidding" color={Color.lightBlue} onPress={()=>setConfirmCancel(false)}/>
+            <Button mode='contained' children="Yes, i'm sure" color={'#ff3333'} onPress={()=>cancelOrderHandler(pickupOrder.id)}/>
+        </Dialog.Actions>
+    </Dialog>}
+
+    {completedOrder&&<Dialog visible={completedOrder}>
+        <Dialog.Content>
+            {Platform.OS==='ios'? <LottieView source={require('../assets/UI/happyFace.json')} autoPlay={true} loop={true} style={{width:'70%', alignSelf:'center'}}/>:<FontAwesome name="hand-peace-o" size={50} color={Color.lightBlue} style={{alignSelf:'center'}}/>}
+        </Dialog.Content>
+        <Dialog.Title style={{textAlign:'center', marginTop:Platform.OS==='ios'?'-15%':0}}>
+            <Text style={{textAlign:'center', fontSize:16, fontWeight:'600'}}>WOOW,YOU'VE COMPLETED YOUR ORDER</Text>
+        </Dialog.Title>
+        <Dialog.Content style={{width:'80%', alignSelf:'center'}}>
+            <Button mode='contained' children="Great!!" color={Color.lightBlue} onPress={()=>setCompletedOrder(false)} />
+        </Dialog.Content>
+    </Dialog>}
+
+
+
 {showPlaceDetails&& <Modalize
     modalStyle={{padding:'3%'}}
     ref={btmSheet}
@@ -395,16 +459,16 @@ const MapPreview= props=>{
             </DataTable>
            </View>
       }
-    closeSnapPointStraightEnabled={false}
-    handleStyle={{backgroundColor:Color.lightBlue}}
-    modalTopOffset={100}
-    tapGestureEnabled={false}
-    threshold={500}
-    closeOnOverlayTap={false}
-    velocity={1000}
-    panGestureEnabled={false}
-    panGestureComponentEnabled={true}
-    FooterComponent={<View style={{marginBottom:10, flexDirection:'row', justifyContent:'space-around'}}>
+        closeSnapPointStraightEnabled={false}
+        handleStyle={{backgroundColor:Color.lightBlue}}
+        modalTopOffset={100}
+        tapGestureEnabled={false}
+        threshold={500}
+        closeOnOverlayTap={false}
+        velocity={1000}
+        panGestureEnabled={false}
+        panGestureComponentEnabled={true}
+        FooterComponent={<View style={{marginBottom:10, flexDirection:'row', justifyContent:'space-around'}}>
 
     <Button children={<Text style={{color:Color.lightBlue, fontSize:16, fontWeight:'500'}}>ORDER NOW</Text>}  color={Color.lightBlue} onPress={()=>addPickUpOrder(destinationDetails.name, destinationDetails.destination, destinationDetails.duration, destinationDetails.fullPrice)}/>
     <Button children={<Text style={{color:'tomato', fontSize:16, fontWeight:'500'}}>CANCEL</Text>}  color='tomato' onPress={()=>btmSheet.current.close()}/>
@@ -419,7 +483,7 @@ const MapPreview= props=>{
 {showDriverDetails&&<RBSheet
     minClosingHeight={50}
     ref={driverDetails}
-    height={220}
+    height={driverFound?350:220}
     openDuration={270}
     animationType={'slide'}
     customStyles={{
@@ -432,33 +496,21 @@ const MapPreview= props=>{
     closeOnPressBack={false}
 
     >
-    {driverFound?
-        <View>
-    <Text>DRIVER FOUND</Text>
-    <View style={{marginVertical:10}}>
-    <Button children={"close"} onPress={()=>{
-        driverDetails.current.close()
-        setDriverFound(false)
-        
-    }}/>
-    </View>
-    </View>
-    :<View>
+    {!driverFound&&<View>
     <View style={{width:120, height:120, alignSelf:'center'}}>
-    <LottieView source={require('../assets/UI/find-driver.json')} autoPlay loop speed={1.5}/>
+    {Platform.OS==='ios' ?<LottieView source={require('../assets/UI/find-driver.json')} autoPlay loop speed={1.5} />: <Ionicons name="md-car" size={40} color={Color.lightBlue} style={{alignSelf:'center'}}/>}
     </View>
     <Text style={{fontSize:16, fontWeight:'600', color:Color.lightBlue}}>Looking for a driver for you...</Text>
-    <View style={{marginVertical:10}}>
-    <Button children={"find"} onPress={()=>setDriverFound(true)}/>
-    </View>
-    
     </View>
     }
     </RBSheet>
 
+    
+    
 }
 
-    
+
+
 </View>
     
     
