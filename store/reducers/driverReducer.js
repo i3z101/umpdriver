@@ -4,7 +4,8 @@ const initState= {
     driverCompleteOrder:{
         orderId:'',
         completed: true
-    }
+    },
+    driverProfile:{}
 }
 
 const driverReducer= (state=initState, action)=>{
@@ -20,7 +21,7 @@ const driverReducer= (state=initState, action)=>{
             case 'DRIVER_COMPLETE_ORDER':
                 return{
                     driverCompleteOrder:{
-                        orderId: '',
+                        orderId: null,
                         completed: true
                     }
                 }

@@ -24,10 +24,13 @@ import DialogDriver from './DialogDriver';
 let pickupOrder
 let mount=false
 let timer;
+let userId;
+let profile;
 const MapPreview= props=>{
-    pickupOrder=useSelector(state=>state.pickUp.pickUpOrder)
     
-
+    pickupOrder=useSelector(state=>state.pickUp.pickUpOrder)
+    userId= useSelector(state=>state.auth.userId)
+    profile= useSelector(state=>state.auth.userProfile);
     const getCurrentLocation= async()=>{
         const status= await Location.requestPermissionsAsync()
         if(status.status!=='granted'){
@@ -74,15 +77,17 @@ const MapPreview= props=>{
     const btmSheet= useRef(Modalize)
     const [showDriverDetails, setShowDriverDetails]= useState(false)
     const driverDetails= useRef()
+    const [showDriverInfoButton, setShowDriverInfoButton]=useState(false)
     const dispatch= useDispatch()
     const [confirmCancel, setConfirmCancel]= useState(false)
     const [completedOrder, setCompletedOrder]= useState(false)
     const [driverInfo,setDriveInfo]= useState({
-        driverName:'',
-        driverCarName:'',
-        driverCarModel:'',
+        driverName: '',
+        driverCarName: '',
+        driverCarModel: '',
+        driverLicensePlate: '',
         driverCarColor:'',
-        driverLicensePlate:''
+        driverphoneNumber:''
     })
     
 
@@ -209,6 +214,7 @@ const MapPreview= props=>{
                                         data.remove(()=>{
                                             //driverDetails.current.close()
                                             setDriverFound(false);
+                                            setShowDriverInfoButton(false)
                                             setShowDriverDetails(false)
                                             clearTimeout(timer)
                                             timer=null
@@ -224,23 +230,29 @@ const MapPreview= props=>{
                    
                     if(response.findDriver){
                         setDriveInfo({
-                            driverFirstName: response.driverDetails.driverFirstName,
-                            driverLastName: response.driverDetails.driverLastName,
+                            driverName: response.driverDetails.driverName,
                             driverCarName: response.driverDetails.driverCarName,
                             driverCarModel: response.driverDetails.driverCarModel,
-                            driverCarColor: response.driverDetails.driverCarColor,
-                            driverLicensePlate: response.driverDetails.driverLicensePlate
+                            driverLicensePlate: response.driverDetails.driverLicensePlate,
+                            driverCarColor:response.driverDetails.driverCarColor,
+                            driverphoneNumber:response.driverDetails.driverphoneNumber,
                         })
                         if(response.completed){
                             setDriverFound(false)
+                            setShowDriverInfoButton(false)
                         }
                         setDriverFound(true)
+                        setShowDriverInfoButton(true)
                         driverDetails.current.close()    
                         clearTimeout(timer)
                         timer= null;
                         if(response.completed){
+                            setShowDriverInfoButton(false)
                             setDriverFound(false)
                             setCompletedOrder(true)
+                            addToHistory(response,pickupOrder.id)
+                            addToHistory(response)
+                            data.remove()
                         }
                     }        
                 }
@@ -276,7 +288,7 @@ const MapPreview= props=>{
     const addPickUpOrder= async(placeName, destination, arrivalTime, price)=>{
         
         const orderDate= moment(new Date()).format("dddd, MMMM Do YYYY, h:mm:ss a");
-        await dispatch(pickUpOrder(orderDate,placeName, destination, arrivalTime, price))
+        await dispatch(pickUpOrder(orderDate,profile.fullName,placeName, destination, arrivalTime,price, profile.phoneNumber))
         if(pickupOrder!==null){
              btmSheet.current.close()
         setShowDriverDetails(true)
@@ -292,6 +304,11 @@ const MapPreview= props=>{
         dispatch(cancelPickupOrder(id))
         setConfirmCancel(false)
         setDriverFound(false)
+        setShowDriverInfoButton(false)
+    }
+
+    const addToHistory= async(pickupOrder,pickpId)=>{
+        await database.ref('ordersHistory/pickupOrders/'+userId).push(pickupOrder)
     }
     
 
@@ -381,17 +398,17 @@ const MapPreview= props=>{
 
 
 
-<Touch style={styles.locationButonContainer} onPress={getCurrentLocation}>
-<MaterialIcons name="my-location" size={30} color={Color.Second} style={{padding:12}}/>
+<Touch style={styles.locationButonContainer} onPress={showDriverInfoButton?()=>setDriverFound(true):getCurrentLocation}>
+{showDriverInfoButton?<FontAwesome name="drivers-license-o" size={30} color="black" style={{padding:12}}/>: <MaterialIcons name="my-location" size={30} color={Color.Second} style={{padding:12}}/>}
 </Touch>
 
 {driverFound&& <DialogDriver visible={driverFound} 
-        driverFirstName={driverInfo.driverFirstName} 
-        driverLastName={driverInfo.driverLastName}
+        driverName={driverInfo.driverName} 
         driverCarName={driverInfo.driverCarName}
         driverCarModel={driverInfo.driverCarModel}
         driverCarColor={driverInfo.driverCarColor}
         driverLicensePlate={driverInfo.driverLicensePlate}
+        driverPhoneNumber={driverInfo.driverphoneNumber}
         source={require('../assets/favicon.png')}
         onPressCancel={()=>setConfirmCancel(true)}
         onPressAwesome={()=>{

@@ -4,6 +4,7 @@ import { dummyDriver } from '../../modal/driver-class'
  
 const initState= {
     deliveryOrder:{},
+    deliveryOrderHistory:{}
 }
 
 const deliveryReducer=(state=initState, action)=>{
@@ -20,6 +21,12 @@ const deliveryReducer=(state=initState, action)=>{
             return {
                 ...state,
                 deliveryOrder: {},
+            }
+        
+        case 'ADD_TO_HISTORY':
+            return{
+                ...state,
+                deliveryOrderHistory: action.deliveryOrder
             }
            
         // case 'CANCEL_ORDER':

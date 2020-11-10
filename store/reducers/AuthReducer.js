@@ -1,11 +1,14 @@
 const initiState= {
     idToken:null,
     userId:null,
+    usersId:'kbhjbhjhjb',
     userMode:true,
     driverMode:false,
     typeOfUser:null,
     authError:null,
-    errorStatus:false
+    errorStatus:false,
+    userProfile:{},
+    driverProfile:{}
 }
 
 
@@ -25,7 +28,7 @@ const authReducer= (state=initiState, action)=>{
                 ...state,
                 idToken:action.idToken,
                 userId: action.userId,
-                driverMode:true,
+                userMode:false,
                 typeOfUser:'driver'
             }
         case 'LOGOUT':
@@ -64,6 +67,43 @@ const authReducer= (state=initiState, action)=>{
                 ...state,
                 authError:null,
                 errorStatus:!state.errorStatus
+            }
+        case 'AUTO_AUTH_USER':
+            return{
+                ...state,
+                idToken:action.idToken,
+                userId: action.userId,
+                userMode:true,
+                typeOfUser: 'user'
+            }
+        case 'AUTO_AUTH_DRIVER':
+            return{
+                ...state,
+                idToken:action.idToken,
+                userId: action.userId,
+                userMode:false,
+                typeOfUser:'driver' 
+            }
+        case 'DID_TRY':
+            return{
+                idToken:null,
+                userId:null,
+                userMode:true,
+                driverMode:false,
+                typeOfUser:null,
+                authError:null,
+                errorStatus:false
+            }
+        case 'ADD_USER_PROFILE':
+                return{
+                    ...state,
+                   userProfile:action.userProfile
+                }
+
+        case 'ADD_DRIVER_PROFILE':
+            return{
+                ...state,
+                driverProfile:action.driverProfile
             }
         default:
             return state

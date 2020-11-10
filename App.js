@@ -1,26 +1,28 @@
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect } from 'react';
-import { SafeAreaView, StyleSheet, Text, View, YellowBox} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { SafeAreaView, StyleSheet,YellowBox, AsyncStorage, View} from 'react-native';
 import ContainerNavigation from './navigation/ContainerNavigation';
 import {applyMiddleware,combineReducers,createStore} from 'redux'
-import {Provider} from 'react-redux'
+import {Provider, useDispatch} from 'react-redux'
 import ReduxThunk from 'redux-thunk'
 import pickUpReducer from './store/reducers/PickUpReducer';
 import deliveryReducer from './store/reducers/DeliveryReducer';
 import driverReducer from './store/reducers/driverReducer';
 import { ddv, initDb } from './dbSQL';
-import authReducer from './store/reducers/AuthReducer';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import authReducer from './store/reducers/AuthReducer'
+
 
 export default function App() {
-
   initDb()
 
   useEffect(()=>{
     YellowBox.ignoreWarnings(['Can\'t perform a React state update on an unmounted component'])
   },[])
-
+  let spinner;
   
+
+
+
 
   const rootReducers= combineReducers({
     pickUp: pickUpReducer,
@@ -46,4 +48,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  
 });

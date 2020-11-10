@@ -56,7 +56,8 @@ const UserAUth= props=>{
 
 
     return <TouchableWithoutFeedback onPress={()=>Keyboard.dismiss()}>
-    <KeyboardAvoidingView style={{...styles.container, backgroundColor: tryAuth?'#a6a6a6':null}} keyboardVerticalOffset={30} behavior={Platform.OS=='android'?'height':'padding'}>
+    <View style={{flex:1,backgroundColor: tryAuth?'#747474':null}}>
+    <KeyboardAvoidingView style={{...styles.container}} keyboardVerticalOffset={30} behavior={Platform.OS=='android'?'height':'padding'}>
     <Formik
     initialValues={{
         email:'',
@@ -64,7 +65,7 @@ const UserAUth= props=>{
         fullName:'',
         phoneNumber:'',
     }}
-    onSubmit={(values)=>handleSubmitForm(values.email, values.password, signup?values.fullName:null, signup?values.phoneNumber:null, signup?gender:null)}
+    onSubmit={(values)=>handleSubmitForm(values.email, values.password, values.fullName, values.phoneNumber, gender)}
     validationSchema={validationSchema}
     validateOnBlur={true}
     >
@@ -73,11 +74,11 @@ const UserAUth= props=>{
         <View style={{flexDirection:'row',justifyContent:'space-around'}}>
         <Text style={styles.title}>{signup?'Signup user':'Signin user'}</Text>
         <View>
-        <Button mode='text' style={styles.buttonClick} color={Color.lightBlue} children='driver?' onPress={()=>dispatch(changeUserMode())}/>
+        <Button mode='text' style={styles.buttonClick} color={Color.lightBlue} children='driver?' onPress={()=>dispatch(changeUserMode())} disabled={tryAuth?true:false}/>
         </View>
         </View>
         
-        <ScrollView >
+        <ScrollView keyboardShouldPersistTaps='handled'>
             <TextInput 
             mode='outlined'
             autoCapitalize='none'
@@ -85,7 +86,15 @@ const UserAUth= props=>{
             value={formikProps.values.email} 
             keyboardType='email-address' 
             onChangeText={(formikProps.handleChange('email'))} 
-            style={styles.input}/>
+            style={styles.input}
+            theme={{
+                colors:{
+                    primary:Color.Primary,
+                    background:  tryAuth?'#747474':null
+                }
+            }}
+            disabled={tryAuth?true:false}
+            />
             <Text style={styles.error}>{formikProps.touched.email&&formikProps.errors.email}</Text>
 
             <TextInput 
@@ -95,7 +104,15 @@ const UserAUth= props=>{
             secureTextEntry 
             onChangeText={formikProps.handleChange('password')} 
             style={styles.input} 
-            maxLength={15}/>
+            maxLength={15}
+            theme={{
+                colors:{
+                    primary:Color.Primary,
+                    background:  tryAuth?'#747474':null
+                }
+            }}
+            disabled={tryAuth?true:false}
+            />
             <Text style={styles.error}>{formikProps.touched.password&&formikProps.errors.password}</Text>
 
             {signup&&<Fragment>
@@ -105,7 +122,15 @@ const UserAUth= props=>{
                 value={signup?formikProps.values.fullName:null}  
                 onChangeText={signup&&formikProps.handleChange('fullName')} 
                 style={styles.input} 
-                maxLength={20}/>
+                maxLength={20}
+                theme={{
+                    colors:{
+                        primary:Color.Primary,
+                        background:  tryAuth?'#747474':null
+                    }
+                }}
+                disabled={tryAuth?true:false}
+                />
                 <Text style={styles.error}>{formikProps.touched.fullName&&formikProps.errors.fullName}</Text>
 
                 <TextInput 
@@ -115,31 +140,38 @@ const UserAUth= props=>{
                 keyboardType='phone-pad' 
                 onChangeText={signup&&formikProps.handleChange('phoneNumber')} 
                 style={styles.input} 
-                maxLength={10}/>
+                maxLength={10}
+                theme={{
+                    colors:{
+                        primary:Color.Primary,
+                        background:  tryAuth?'#747474':null
+                    }
+                }}
+                disabled={tryAuth?true:false}
+                />
                 <Text style={styles.error}>{formikProps.touched.phoneNumber&&formikProps.errors.phoneNumber}</Text>
 
                 <View style={styles.radioConatiner}>
             <View style={{...styles.radioButtonContainer,backgroundColor:gender==='male'?Color.lightBlue:null, borderRadius:10,borderColor:error?'red':null, borderWidth:error?1:null}}>
             <FontAwesome name="male" size={24} color="black" style={{marginRight:'5%'}}/>
-            <Text style={{fontSize:19, color:'black'}} onPress={()=>setGender('male')}>Male</Text>
+            <Text style={{fontSize:19, color:'black'}} onPress={tryAuth?()=>{}:()=>setGender('male')}>Male</Text>
             
             </View>
             <View style={{...styles.radioButtonContainer, backgroundColor:gender==='female'?'#ff3399':null, borderColor:error?'red':null, borderWidth:error?1:null}}>
             <FontAwesome name="female" size={24} color="black" style={{marginRight:'5%'}}/>
-            <Text  style={{fontSize:19, color:'black'}} onPress={()=>setGender('female')}>Female</Text>
+            <Text  style={{fontSize:19, color:'black'}} onPress={tryAuth?()=>{}:()=>setGender('female')}>Female</Text>
             </View>
             {error&&<Text style={{color:'red'}}>REQUIRED</Text>}
             </View>
                 </Fragment>}
             <Button mode='contained' children={signup?'Signup': 'SignIn'} style={styles.button} color={Color.Primary} onPress={()=>{
                 formikProps.handleSubmit()
-                // setTimeout(()=>{
-                //     formikProps.handleReset()
-                // },50) 
-            }}/>
+            }}
+            disabled={tryAuth?true:false}
+            />
             <View style={signup?null:styles.haveNoAccountConatiner}>
             <Text style={styles.haveNoAccount}>{signup?"Switch to login?":"You don't have an account?"} </Text>
-            <Button mode='text' style={styles.buttonClick} children='Click here' onPress={()=>setSignup(!signup)}/>
+            <Button mode='text' style={styles.buttonClick} children='Click here' onPress={()=>setSignup(!signup)} disabled={tryAuth?true:false}/>
             </View>
             
         </ScrollView>
@@ -157,7 +189,9 @@ const UserAUth= props=>{
     </Formik>
     {spinner}
     </KeyboardAvoidingView>
+    </View>
     </TouchableWithoutFeedback>
+    
 }     
     
 

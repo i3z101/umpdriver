@@ -4,6 +4,8 @@ import { HeaderButtons, Item } from 'react-navigation-header-buttons'
 import CustomHeaderButton from '../component/HeaderButton'
 import { DrawerActions } from '@react-navigation/native';
 import Color from '../constants/Color';
+import {Ionicons} from '@expo/vector-icons';
+
 const Filter= props=>{
     return <View style={styles.container}>
     <Text>Filter Screen...</Text>
@@ -25,6 +27,7 @@ export const FilterOption= navData=>{
        headerLeft: ()=>(
            <HeaderButtons HeaderButtonComponent={CustomHeaderButton}>
            <Item
+           IconComponent={Ionicons}
            iconName={Platform.OS==='android'? 'md-menu' : 'ios-menu'}
            title='menu'
            onPress={()=>{navData.navigation.dispatch(DrawerActions.openDrawer());}}

@@ -14,8 +14,9 @@ import { driverCompleteOrder, driverNotCompleteOrder } from '../../store/actions
 import LottieView from 'lottie-react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 
-let orderId
-let fail;
+let orderId;
+let profile;
+let userId;
 const DriverScreen= props=>{
 
     //declare variables
@@ -23,6 +24,8 @@ const DriverScreen= props=>{
     let mounted=false;
     let spinner;
     orderId= useSelector(state=>state.driver.driverCompleteOrder.orderId)
+    profile= useSelector(state=>state.auth.driverProfile);
+    userId= useSelector(state=>state.auth.userId);
     const [pickupOrders, setPickupOrders]= useState({
         listOrders:[]
     });
@@ -48,11 +51,13 @@ const DriverScreen= props=>{
                 orderDetails.push({
                     id: key,
                     orderDate: fetchedData[key].orderDate,
+                    userName: fetchedData[key].userName,
                     placeName: fetchedData[key].placeName,
                     destination: fetchedData[key].destination,
                     arrivalTime: fetchedData[key].arrivalTime,
                     price: fetchedData[key].price,
-                    findDri: fetchedData[key].findDriver
+                    findDri: fetchedData[key].findDriver,
+                    userPhoneNumber: fetchedData[key].userPhoneNumber
                 })
             }
             setPickupOrders(prevState=>({
@@ -64,30 +69,30 @@ const DriverScreen= props=>{
     },[])
 
     const acceptOrder= async(id)=>{
-        const dbResponse= await fetchDriverData();
-        const dbResult= await dbResponse.rows._array;
          await database.ref('pickUpOrder/'+id).update({
             findDriver:true,
             driverDetails:{
-              driverFirstName: dbResult[0].driverFirstName,
-              driverLastName: dbResult[0].driverLastName,
-              driverCarName: dbResult[0].driverCarName,
-              driverCarModel: dbResult[0].driverCarModel,
-              driverLicensePlate: dbResult[0].driverLicensePlate,
-              driverCarColor:dbResult[0].driverCarColor,
-            }
+                driverName: profile.fullName,
+                driverCarName: profile.carName,
+                driverCarModel: profile.carModel,
+                driverLicensePlate: profile.carLicensePlate,
+                driverCarColor:profile.carColor,
+                driverphoneNumber:profile.phoneNumber,
+              }
         })
         const orderIndex= pickupOrders.listOrders.findIndex(order=>order.id===id)
-        database.ref('driverOrder/pickUpOrder/'+dbResult[0].id+'/'+id).push(JSON.parse(JSON.stringify(pickupOrders.listOrders[orderIndex])))
+        database.ref('driverOrder/pickUpOrder/'+userId+'/'+id).push(JSON.parse(JSON.stringify(pickupOrders.listOrders[orderIndex])))
         dispatch(driverNotCompleteOrder(pickupOrders.listOrders[orderIndex].id))
+
         props.navigation.navigate('complete Order pickup', {
-            userName: 'Abdulaziz baqaleb',
+            userName: pickupOrders.listOrders[orderIndex].userName,
             id: pickupOrders.listOrders[orderIndex].id,
             orderDate:pickupOrders.listOrders[orderIndex].orderDate,
             placeName: pickupOrders.listOrders[orderIndex].placeName,
             destination: pickupOrders.listOrders[orderIndex].destination,
             arrivalTime: pickupOrders.listOrders[orderIndex].arrivalTime,
             price: pickupOrders.listOrders[orderIndex].price,
+            userPhoneNumber: pickupOrders.listOrders[orderIndex].userPhoneNumber
           });
     }
 
@@ -132,13 +137,14 @@ const DriverScreen= props=>{
               if(result){
                 if(!result.completed){
                     props.navigation.navigate('complete Order pickup', {
-                      userName: 'Abdulaziz baqaleb',
+                      userName: result.userName,
                       id:response.key,
                       orderDate:result.orderDate,
                       placeName: result.placeName,
                       destination: result.destination,
                       arrivalTime: result.address,
                       price: result.price,
+                      userPhoneNumber: result.userPhoneNumber
                   });
                     }
               }
@@ -149,14 +155,7 @@ const DriverScreen= props=>{
       
         }
        },[])
-      
-       useEffect(()=>{
-        fail= props.route.params?props.route.params.fail:null;
-         if(fail){
-          setDeliveryCanceled(true)
-         }
-        
-       },[fail, props.route.params])
+    
     
 
   
@@ -182,7 +181,7 @@ const DriverScreen= props=>{
                
                 <Avatar rounded source={require('../../assets/favicon.png')} size={'medium'}/>
                
-                <Text style={{fontWeight:'700',  color:Color.lightBlue}}>Abdulaziz Ahmed</Text>
+                <Text style={{fontWeight:'700',  color:Color.lightBlue}}>{itemData.item.userName}</Text>
                   
                
                 </View>

@@ -1,5 +1,5 @@
 import React, { useState, Fragment, useEffect, useRef, useCallback } from 'react'
-import {View, Text, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, TouchableOpacity, Dimensions, ScrollView, Alert,Image } from 'react-native'
+import {View, Text, StyleSheet, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, TouchableOpacity, Dimensions, ScrollView, Alert} from 'react-native'
 import Color from '../../constants/Color';
 import {Picker} from '@react-native-community/picker';
 import {Formik} from 'formik'
@@ -7,7 +7,7 @@ import {TextInput, Button, DataTable, Dialog} from 'react-native-paper'
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment'
 import { useDispatch, useSelector } from 'react-redux';
-import { addDeliveryOrder, cancelDeliveryOrder, orderCancelationHandler } from '../../store/actions/actions';
+import { addDeliveryOrder, addOrderToHistory, cancelDeliveryOrder, orderCancelationHandler } from '../../store/actions/actions';
 import RBSheet from "react-native-raw-bottom-sheet";
 import LottieView from 'lottie-react-native';
 import * as yup from 'yup'
@@ -16,6 +16,9 @@ import { database } from '../../configDB';
 import {findDriver} from '../../store/actions/actions'
 import {Avatar} from 'react-native-elements'
 import DialogDriver from '../../component/DialogDriver'
+import { HeaderButtons, Item } from 'react-navigation-header-buttons'
+import CustomHeaderButton from '../../component/HeaderButton'
+
 
 const validationSchema= yup.object({
     description: yup.string().required().min(3),
@@ -24,15 +27,15 @@ const validationSchema= yup.object({
 })
 
 let delivery;
-
+let userId;
+let profile;
+let orderId=null;
 const DeliveryScreen= props=>{
     
     //declares variables
-
     let modal;
     let timer=null;
-
-
+    userId= useSelector(state=>state.auth.userId)
     let Touchable;
     if(Platform.OS==='android'){
         Touchable= TouchableWithoutFeedback
@@ -40,6 +43,8 @@ const DeliveryScreen= props=>{
     else{
         Touchable= TouchableOpacity
     }
+    
+   
     const [selectedService, setSelectedService]=useState('UMP') 
     const [showPicker, setShowPicker]= useState(false)
     const [timeValue, setTimeValue]=useState(new Date())
@@ -53,18 +58,24 @@ const DeliveryScreen= props=>{
     const [showDriverFound, setShowDriverFound]= useState(false)
     const bottomShow= useRef(RBSheet)
     const [placeOrder, setPlaceOrder]=useState(false)
+    const [showDriverInfoButton, setShowDriverInfoButton]=useState(false)
+    const [disabledCancelButton, setDisabledCancelButton]=useState(false)
     const [confirmCancel, setConfirmCancel]= useState(false)
     const [confirmCancelBeforeAccept, setConfirmCancelBeforeAccept]= useState(false)
     const [completedOrder, setCompletedOrder]= useState(false)
     delivery= useSelector(state=>state.delivery.deliveryOrder)
+    profile=  useSelector(state=>state.auth.userProfile);
     const [driverInfo,setDriveInfo]= useState({
-        driverFirstName:'',
-        driverLastName:'',
-        driverCarName:'',
-        driverCarModel:'',
+        driverName: '',
+        driverCarName: '',
+        driverCarModel: '',
+        driverLicensePlate: '',
         driverCarColor:'',
-        driverLicensePlate:''
+        driverphoneNumber:''
     })
+
+
+   
 
     
     
@@ -89,6 +100,7 @@ const DeliveryScreen= props=>{
                                 if(!response.findDriver){
                                     Alert.alert("Sorry", "We couldn't find a driver for you", [{text:'okey', onPress:()=>{
                                         setPlaceOrder(false)
+                                        setShowDriverInfoButton(false)
                                         data.remove(()=>{
                                             setShowDriverFound(false)
                                             dispatch(findDriver())
@@ -99,27 +111,36 @@ const DeliveryScreen= props=>{
                         }
                         if(response.findDriver){
                             setDriveInfo({
-                                driverFirstName: response.driverDetails.driverFirstName,
-                                driverLastName: response.driverDetails.driverLastName,
+                                driverName: response.driverDetails.driverName,
                                 driverCarName: response.driverDetails.driverCarName,
                                 driverCarModel: response.driverDetails.driverCarModel,
-                                driverCarColor: response.driverDetails.driverCarColor,
-                                driverLicensePlate: response.driverDetails.driverLicensePlate
+                                driverLicensePlate: response.driverDetails.driverLicensePlate,
+                                driverCarColor:response.driverDetails.driverCarColor,
+                                driverphoneNumber:response.driverDetails.driverphoneNumber,
                             })
                             if(response.completed){
                                 setShowDriverFound(false)
+                                setShowDriverInfoButton(false)
+                                dispatch(findDriver())
                             }
+                            orderId= res.key;
                             setShowDriverFound(true)
+                            setShowDriverInfoButton(true)
                             clearTimeout(timer)
                             timer= null;
                             // bottomShow.current.close()
                         }
                         if(response.completed){
+                            dispatch(findDriver())
+                            setShowDriverInfoButton(false)
                             setShowDriverFound(false)
                             setPlaceOrder(false)
                             setCompletedOrder(true)
+                            setDisabledCancelButton(false)
                             clearTimeout(timer)
                             timer= null;
+                            addToHistory(response)
+                            data.remove()
                         }
                     }else{
                         clearTimeout(timer)
@@ -152,7 +173,7 @@ const DeliveryScreen= props=>{
 
       const deliveryOrderHandler= async(description,address, googleMapUrl)=>{
             const orderDate= moment(new Date()).format("dddd, MMMM Do YYYY, h:mm:ss a");
-            await dispatch(addDeliveryOrder(orderDate,selectedService, description, address,googleMapUrl,timeDeliveryValue))
+            await dispatch(addDeliveryOrder(orderDate,profile.fullName,selectedService, description, address,googleMapUrl,timeDeliveryValue, profile.phoneNumber))
             if(delivery!==null){
             setTimeout(()=>{
             setPlaceOrder(true)
@@ -169,9 +190,13 @@ const DeliveryScreen= props=>{
 
       //AFTER DRIVER ACCEPTS ORDER
       const cancelOrderHandler=(id)=>{ 
+          console.log(id);
           dispatch(cancelDeliveryOrder(id))
           setConfirmCancel(false)
           setShowDriverFound(false)
+          setPlaceOrder(false)
+          setDisabledWrite(false)
+          setShowDriverInfoButton(false)
           dispatch(findDriver())
           setHeight(0)
     
@@ -184,6 +209,16 @@ const DeliveryScreen= props=>{
           setDisabledWrite(false)
           setConfirmCancelBeforeAccept(false)
       }
+
+      const addToHistory= async(deliveryOrder,deliveryId)=>{
+           await database.ref('ordersHistory/deliveryOrder/'+userId).push(deliveryOrder)
+      }
+
+
+
+    //   const addOrderToHistory= (deliveryId, userId)=>{
+    //     database.ref('deliveryOrderHistory/'+userId).push()
+    //   }
 
 
 
@@ -294,6 +329,7 @@ const DeliveryScreen= props=>{
         contentContainerStyle={{
            justifyContent:'center',
         }}
+        keyboardShouldPersistTaps='handled'
         >
         <View style={styles.formContainer}>
        
@@ -438,45 +474,50 @@ const DeliveryScreen= props=>{
                 />
                 <Button
                 disabled={placeOrder?false:true}
-                children='cancel'
+                children={showDriverInfoButton?'driver Info':'cancel'}
                 mode='contained'
-                onPress={()=>setConfirmCancelBeforeAccept(true)}
+                onPress={showDriverInfoButton? ()=>{
+                    setShowDriverFound(true)
+                    setDisabledCancelButton(true)
+                }:()=>setConfirmCancelBeforeAccept(true) }
                 style={styles.button}
-                theme={{
+                theme={{ 
                     colors:{
-                        primary:'tomato'
+                        primary:showDriverInfoButton?Color.lightBlue:'tomato'
                     },
                     roundness:20
                 }}
                 />
             </View>
-            
         </View>
         </ScrollView>
     )}
+
+    
     
     </Formik>
    
     {modal}
    
     <DialogDriver visible={showDriverFound} 
-        driverFirstName={driverInfo.driverFirstName} 
-        driverLastName={driverInfo.driverLastName}
-        driverCarName={driverInfo.driverCarName}
-        driverCarModel={driverInfo.driverCarModel}
-        driverCarColor={driverInfo.driverCarColor}
-        driverLicensePlate={driverInfo.driverLicensePlate}
-        source={require('../../assets/favicon.png')}
-        onPressCancel={()=>{
-            //setShowDriverFound(false)
-            setConfirmCancel(true)
-        }}
-        onPressAwesome={()=>{
-            setShowDriverFound(false)
-            bottomShow.current.close()
-            dispatch(findDriver())
-        }}
-        />
+    driverName={driverInfo.driverName} 
+    driverCarName={driverInfo.driverCarName}
+    driverCarModel={driverInfo.driverCarModel}
+    driverCarColor={driverInfo.driverCarColor}
+    driverLicensePlate={driverInfo.driverLicensePlate}
+    driverPhoneNumber={driverInfo.driverphoneNumber}
+    cannotCancel={disabledCancelButton}
+    source={require('../../assets/favicon.png')}
+    onPressCancel={()=>{
+        //setShowDriverFound(false)
+        setConfirmCancel(true)
+    }}
+    onPressAwesome={()=>{
+        setShowDriverFound(false)
+        bottomShow.current.close()
+        // dispatch(findDriver())
+    }}
+    />
 
         {confirmCancel&&<Dialog visible={confirmCancel}>
                 <Dialog.Title style={{textAlign:'center'}}>
@@ -566,6 +607,12 @@ const styles= StyleSheet.create({
     },
     error:{
         color:'red'
+    },
+    driverInfoButton:{
+        width:'50%', 
+        position:'absolute', 
+        top:Platform.OS==='ios'?'90%':'95%', 
+        left:'50%'
     }
   
     
@@ -579,7 +626,8 @@ export const DeliveryOptionStyle= navData=>{
        },
        gestureEnabled:false,
        headerLeft:null,
-       headerTitleAlign:'center' 
+       headerTitleAlign:'center',
+       
     }
 }
 

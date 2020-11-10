@@ -6,18 +6,21 @@ import { DrawerActions } from '@react-navigation/native';
 import Color from '../../constants/Color';
 import Card from '../../component/Card';
 import LottieView from 'lottie-react-native';
-import { Octicons,AntDesign } from '@expo/vector-icons';
+import { Octicons,AntDesign, Ionicons } from '@expo/vector-icons';
 import androidIconsStyles from '../../constants/androidIconsStyles';
 import { database } from '../../configDB';
 import { Button, TextInput } from 'react-native-paper';
 import { fetchDriverData,insertDriverDetails } from '../../dbSQL';
 import { isEmptyArray } from 'formik';
 import { set } from 'react-native-reanimated';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { logOut } from '../../store/authAction/authAction';
 
+let userId;
+let driverProfile;
 const Home= props=>{
-
+    userId= useSelector(state=>state.auth.userId);
+    driverProfile= useSelector(state=>state.auth.driverProfile);
     const [completeForm, setCompleteForm]= useState(true)
     const [driverDetails, setDriverDetails]= useState({
         driverFirstName:'',
@@ -30,31 +33,6 @@ const Home= props=>{
     let Touchable;
     let home;
     
-
-    
-
-    useEffect(()=>{
-        const fetchDriver= async()=>{
-             const dbResponse= await fetchDriverData();
-             if(dbResponse){
-                  const dbResult= await dbResponse.rows._array;
-                  if(isEmptyArray(dbResult)){
-                      setCompleteForm(false)
-                  }
-                  else{
-                      if(dbResult[0].completed){
-                          setCompleteForm(true)
-                      }
-                      else{
-                          setCompleteForm(false)
-                      }
-                  }
-             }
-             
-        
-        }
-       fetchDriver()
-    },[completeForm])
 
     const handleDriverData=(inputName,inputValu)=>{
         setDriverDetails(prevState=>({
@@ -242,6 +220,7 @@ export const OrderOptionStyle= navData=>{
        headerLeft: ()=>(
            <HeaderButtons HeaderButtonComponent={CustomHeaderButton}>
            <Item
+           IconComponent={Ionicons}
            iconName={Platform.OS==='android'? 'md-menu' : 'ios-menu'}
            title='menu'
            onPress={()=>{navData.navigation.dispatch(DrawerActions.openDrawer());}}

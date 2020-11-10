@@ -12,9 +12,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { logOut } from '../../store/authAction/authAction';
 
 let findDriver;
+let userProfile;
 const Home= props=>{
     let Touchable;
-    findDriver= useSelector(state=>state.delivery.findDriver)
+    findDriver= useSelector(state=>state.delivery.findDriver);
+    userProfile= useSelector(state=>state.auth.userProfile);
+
     if(Platform.OS==='android'){
         Touchable= TouchableHighlight 
     }

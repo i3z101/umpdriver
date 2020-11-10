@@ -17,7 +17,9 @@ import { FontAwesome5 } from '@expo/vector-icons';
 
 let driverInfo;
 let delivery;
-let orderId
+let orderId;
+let profile;
+let userId;
 const DriverScreen= props=>{
 
     //declare variables
@@ -25,13 +27,15 @@ const DriverScreen= props=>{
   let mounted=false;
   let spinner;
   let fail;
+  let succeed;
   driverInfo= useSelector(state=>state.driver.driver)
   delivery= useSelector(state=>state.delivery.deliveryOrder)
   orderId= useSelector(state=>state.driver.driverCompleteOrder.orderId)
+  profile= useSelector(state=>state.auth.driverProfile);
+  userId= useSelector(state=>state.auth.userId);
   const [deliveryOrder, setDeliveryOrders]= useState({
       listOrders:[]
   });
-  const [deliveryCanceled, setDeliveryCanceled]= useState(false)
   const [refresh,setRefresh]= useState(false)
   const dispatch= useDispatch()
 
@@ -54,12 +58,14 @@ const DriverScreen= props=>{
                 orderDetails.push({
                     id: key,
                     orderDate:fetchedData[key].orderDate,
+                    userName: fetchedData[key].userName,
                     serviceType: fetchedData[key].serviceType,
                     description: fetchedData[key].description,
                     address: fetchedData[key].address,
                     googleMapUrl: fetchedData[key].googleMapUrl,
                     time: fetchedData[key].time,
-                    finddri:fetchedData[key].findDriver
+                    finddri:fetchedData[key].findDriver,
+                    userPhoneNumber: fetchedData[key].userPhoneNumber
                 })
             }
             setDeliveryOrders(prevState=>({
@@ -72,26 +78,26 @@ const DriverScreen= props=>{
   },[])
 
   const acceptOrder= async(id)=>{
-    const dbResponse= await fetchDriverData();
-    const dbResult= await dbResponse.rows._array;
+    // const dbResponse= await fetchDriverData();
+    // const dbResult= await dbResponse.rows._array;
      await database.ref('deliveryOrder/'+id).update({
         findDriver:true,
         driverDetails:{
-          driverFirstName: dbResult[0].driverFirstName,
-          driverLastName: dbResult[0].driverLastName,
-          driverCarName: dbResult[0].driverCarName,
-          driverCarModel: dbResult[0].driverCarModel,
-          driverLicensePlate: dbResult[0].driverLicensePlate,
-          driverCarColor:dbResult[0].driverCarColor,
+          driverName: profile.fullName,
+          driverCarName: profile.carName,
+          driverCarModel: profile.carModel,
+          driverLicensePlate: profile.carLicensePlate,
+          driverCarColor:profile.carColor,
+          driverphoneNumber:profile.phoneNumber,
         }
     })
 
     const orderIndex= deliveryOrder.listOrders.findIndex(order=>order.id===id)
-    database.ref('driverOrder/deliveryOrder/'+dbResult[0].id+'/'+id).push(JSON.parse(JSON.stringify(deliveryOrder.listOrders[orderIndex])))
+    database.ref('driverOrder/deliveryOrder/'+userId+'/'+id).push(JSON.parse(JSON.stringify(deliveryOrder.listOrders[orderIndex])))
     dispatch(driverNotCompleteOrder(deliveryOrder.listOrders[orderIndex].id))
       
     props.navigation.navigate('complete Order delivery', {
-      userName: 'Abdulaziz baqaleb',
+      userName: deliveryOrder.listOrders[orderIndex].userName,
       id: deliveryOrder.listOrders[orderIndex].id,
       orderDate:deliveryOrder.listOrders[orderIndex].orderDate,
       serviceType: deliveryOrder.listOrders[orderIndex].serviceType,
@@ -99,6 +105,7 @@ const DriverScreen= props=>{
       address: deliveryOrder.listOrders[orderIndex].address,
       googleMapUrl: deliveryOrder.listOrders[orderIndex].googleMapUrl,
       time: deliveryOrder.listOrders[orderIndex].time,
+      userPhoneNumber:deliveryOrder.listOrders[orderIndex].userPhoneNumber
     });
       
     
@@ -146,30 +153,36 @@ useEffect(()=>{
               userName: 'Abdulaziz baqaleb',
               id:response.key,
               orderDate:result.orderDate,
+              fullName: result.fullName,
               serviceType: result.serviceType,
               description: result.description,
               address: result.address,
               googleMapUrl: result.googleMapUrl,
               time: result.time,
+              userPhoneNumber: result.userPhoneNumber
           });
             }
         }
         else{
          dispatch(driverCompleteOrder())
-         
         }
       })
-
   }
  },[])
 
- useEffect(()=>{
-  fail= props.route.params?props.route.params.fail:null;
-   if(fail){
-    setDeliveryCanceled(true)
-   }
+
+//  useEffect(()=>{
+//   fail= props.route.params?props.route.params.fail:null;
+//   succeed= props.route.params?props.route.params.succeed:null;
+//   console.log("fail", fail);
+//   console.log("succeed", succeed);
+//    if(fail&&!succeed){
+//     setDeliveryCanceled(true)
+//    }else if(!fail&&succeed){
+//     setDeliveryCanceled(false)
+//    }
   
- },[fail, props.route.params])
+//  },[fail,succeed, props.route.params])
 
 
 if(refresh){
@@ -193,7 +206,7 @@ if(refresh){
            
             <Avatar rounded source={require('../../assets/favicon.png')} size={'medium'}/>
            
-            <Text style={{fontWeight:'700',  color:Color.lightBlue}}>Abdulaziz Ahmed</Text>
+            <Text style={{fontWeight:'700',  color:Color.lightBlue}}>{itemData.item.userName}</Text>
               
            
             </View>
@@ -228,17 +241,7 @@ if(refresh){
         }}
         />: spinner}
 
-        {deliveryCanceled&&<Dialog visible={deliveryCanceled}>
-        <Dialog.Content>
-            {Platform.OS==='ios'? <LottieView source={require('../../assets/UI/sadFace.json')} autoPlay={true} loop={true} style={{width:'70%', alignSelf:'center'}} speed={1.5}/>:<FontAwesome5 name="sad-tear" size={50} color={Color.lightBlue} style={{alignSelf:'center'}} />}
-        </Dialog.Content>
-        <Dialog.Title style={{textAlign:'center', marginTop:Platform.OS==='ios'?'-15%':0}}>
-            <Text style={{textAlign:'center', fontSize:16, fontWeight:'600'}}>Sorry for that, Delivey is canceled</Text>
-        </Dialog.Title>
-        <Dialog.Content style={{width:'80%', alignSelf:'center'}}>
-            <Button mode='contained' children="OKAY):" color={Color.lightBlue} onPress={()=>setDeliveryCanceled(false)}/>
-        </Dialog.Content>
-    </Dialog>}
+       
       
     </View>
 }

@@ -1,9 +1,8 @@
-import {database} from '../../configDB'
-
-export const addDeliveryOrder= (orderDate,serviceType, description, address,googleMapUrl, time)=>{
+import { useSelector } from 'react-redux';
+import {database} from '../../configDB';
+export const addDeliveryOrder= (orderDate,userName,serviceType, description, address,googleMapUrl, time, userPhoneNumber)=>{
     return async (dispatch, getState)=>{
         try{
-            
            const data= await fetch('https://ump-driver.firebaseio.com/deliveryOrder.json',{
                method:"POST",
                headers:{
@@ -11,13 +10,15 @@ export const addDeliveryOrder= (orderDate,serviceType, description, address,goog
                },
                body: JSON.stringify({
                    orderDate,
+                   userName,
                    serviceType,
                    description,
                    address,
                    googleMapUrl,
                    time,
                    findDriver:false,
-                   completed: false
+                   completed: false,
+                   userPhoneNumber
                })
            })
            const response= await data.json()
@@ -79,7 +80,7 @@ export const cancelPickupOrder= (id)=>{
 
 
 
-export const pickUpOrder= (orderDate,placeName, destination, arrivalTime, price)=>{
+export const pickUpOrder= (orderDate,userName,placeName, destination, arrivalTime, price, userPhoneNumber)=>{
     return async (dispatch)=>{
         try{
             const data= await fetch ('https://ump-driver.firebaseio.com/pickUpOrder.json',{
@@ -89,12 +90,14 @@ export const pickUpOrder= (orderDate,placeName, destination, arrivalTime, price)
             },
             body: JSON.stringify({
                 orderDate,
+                userName,
                 placeName,
                 destination,
                 arrivalTime,
                 price,
                 findDriver:false,
-                completed: false
+                completed: false,
+                userPhoneNumber
             })
         })
         if(!data.ok){
@@ -150,5 +153,19 @@ export const driverNotCompleteOrder= (id)=>{
 export const driverCompleteOrder=()=>{
     return{
         type: 'DRIVER_COMPLETE_ORDER',
+    }
+}     
+
+export const addOrderToHistory=(deliveryOrder)=>{
+    return{
+        type:'ADD_TO_HISTORY',
+        deliveryOrder
+    }
+}
+
+export const addDeliveryProfile= (driverProfile)=>{
+    return{
+        type: 'ADD_DRIVER_PROFILE',
+        driverProfile
     }
 }

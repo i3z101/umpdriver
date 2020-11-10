@@ -1,6 +1,6 @@
 import { exp } from "react-native-reanimated"
 import { auth, database } from "../../configDB"
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {AsyncStorage} from 'react-native'
 
 export const userAuthRegister= (email, password, fullName, phoneNumber, gender)=>{
     return async(dispatch)=>{
@@ -8,6 +8,8 @@ export const userAuthRegister= (email, password, fullName, phoneNumber, gender)=
         const dataSend= await auth.createUserWithEmailAndPassword(email, password)
         const idToken= await dataSend.user.getIdToken()
         const userId= dataSend.user.uid
+        const expiryTime= await dataSend.user.getIdTokenResult()
+        const expirationTime=new Date(expiryTime.expirationTime).getTime();
         await database.ref('userProfile/'+userId).push({
             email,
             fullName,
@@ -26,6 +28,17 @@ export const userAuthRegister= (email, password, fullName, phoneNumber, gender)=
                         idToken:idToken,
                         userId: userId,
                         })
+                        dispatch({
+                            type: 'ADD_USER_PROFILE',
+                            userProfile: response[key]
+                        })
+                        const userDetails= JSON.stringify({
+                            idToken: idToken,
+                            userId:userId,
+                            userMode: true,
+                            expirationTime: expirationTime
+                        })
+                        AsyncStorage.setItem('userDetails', userDetails)
                     }
                 }
             }else{
@@ -53,7 +66,7 @@ export const userAuthLogin= (email, password)=>{
         const idToken= await dataSend.user.getIdToken()
         const userId= dataSend.user.uid
         const expiryTime= await dataSend.user.getIdTokenResult()
-        const expirationTime=new Date(expiryTime.expirationTime).getTime();
+        const expirationTime=new Date(expiryTime.expirationTime).getTime()
         const data= database.ref('userProfile/'+userId)
          data.once('value', res=>{
         const response= res.val()
@@ -65,12 +78,18 @@ export const userAuthLogin= (email, password)=>{
                     idToken:idToken,
                     userId: userId,
                     })
+                    dispatch({
+                        type: 'ADD_USER_PROFILE',
+                        userProfile: response[key]
+                    })
                     const userDetails= JSON.stringify({
                         idToken: idToken,
+                        userId:userId,
                         userMode: true,
                         expirationTime: expirationTime
                     })
-                    await AsyncStorage.setItem('userDetails', userDetails)
+                    AsyncStorage.setItem('userDetails', userDetails)
+                    
                 }
             }
         }
@@ -95,7 +114,8 @@ export const driverAuthRegister= (email, password, fullName, phoneNumber, gender
         const dataSend= await auth.createUserWithEmailAndPassword(email, password)
         const idToken= await dataSend.user.getIdToken()
         const userId= dataSend.user.uid
-
+        const expiryTime= await dataSend.user.getIdTokenResult()
+        const expirationTime=new Date(expiryTime.expirationTime).getTime();
         await database.ref('driverProfile/'+userId).push({
             email,
             fullName,
@@ -114,6 +134,17 @@ export const driverAuthRegister= (email, password, fullName, phoneNumber, gender
                         idToken:idToken,
                         userId: userId,
                         })
+                        dispatch({
+                            type: 'ADD_DRIVER_PROFILE',
+                            driverProfile: response[key]
+                        })
+                        const userDetails= JSON.stringify({
+                            idToken: idToken,
+                            userId:userId,
+                            userMode: false,
+                            expirationTime: expirationTime
+                        })
+                        AsyncStorage.setItem('userDetails', userDetails)
                     }
                 }
             }else{
@@ -137,6 +168,8 @@ export const driverAuthLogin= (email, password)=>{
         const dataSend= await auth.signInWithEmailAndPassword(email, password)
         const idToken= await dataSend.user.getIdToken()
         const userId= dataSend.user.uid
+        const expiryTime= await dataSend.user.getIdTokenResult()
+        const expirationTime=new Date(expiryTime.expirationTime).getTime();
         const data= database.ref('driverProfile/'+userId)
         data.once('value', res=>{
             const response= res.val()
@@ -148,6 +181,17 @@ export const driverAuthLogin= (email, password)=>{
                         idToken:idToken,
                         userId: userId,
                         })
+                        dispatch({
+                            type: 'ADD_DRIVER_PROFILE',
+                            driverProfile: response[key]
+                        })
+                        const userDetails= JSON.stringify({
+                            idToken: idToken,
+                            userId:userId,
+                            userMode: false,
+                            expirationTime: expirationTime
+                        })
+                        AsyncStorage.setItem('userDetails', userDetails)
                     }
                 }
             }else{
@@ -182,5 +226,54 @@ export const logOut=()=>{
         dispatch({
             type:'LOGOUT'
         })
+        AsyncStorage.removeItem('userDetails')
+    }
+}
+
+export const didTryAuth=()=>{
+    return{
+        type:'DID_TRY'
+    }
+} 
+
+export const autoAuth=(userMode,idToken, userId)=>{
+    return async(dispatch)=>{
+        if(userMode){
+            dispatch({
+                type:'AUTO_AUTH_USER',
+                idToken,
+                userId
+            })
+            const data= database.ref('userProfile/'+userId)
+            data.once('value', res=>{
+            const response= res.val()
+            if(response){
+               for (const key in response) {
+                        dispatch({
+                            type: 'ADD_USER_PROFILE',
+                            userProfile: response[key]
+                        })
+               }
+            }
+        })
+        }else{
+            dispatch({
+                type:'AUTO_AUTH_DRIVER',
+                idToken,
+                userId
+            })
+            const data= database.ref('driverProfile/'+userId)
+            data.once('value', res=>{
+            const response= res.val()
+            if(response){
+               for (const key in response) {
+                        dispatch({
+                            type: 'ADD_DRIVER_PROFILE',
+                            driverProfile: response[key]
+                        })
+               }
+            }
+        })
+    }
     }
 }
