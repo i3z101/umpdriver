@@ -1,11 +1,11 @@
 import React, { Fragment,useState,useEffect } from 'react'
-import {View, Text, StyleSheet, Platform} from 'react-native'
+import {View, Text, StyleSheet, Platform, ScrollView} from 'react-native'
 import Color from '../constants/Color';
 import { HeaderButtons, Item } from 'react-navigation-header-buttons'
 import CustomHeaderButton from '../component/HeaderButton'
 import {Ionicons, Entypo,Foundation,Feather, FontAwesome5, Fontisto, FontAwesome} from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
-import { Card } from 'react-native-elements';
+import { Avatar, Card } from 'react-native-elements';
 import { Divider, TextInput } from 'react-native-paper';
 import {WaveIndicator} from 'react-native-indicators';
 let userMode;
@@ -23,7 +23,11 @@ const Profile= props=>{
 
 
     return( 
-    !profile?<WaveIndicator color={Color.Primary} size={60} count={4} waveFactor={0.60} waveMode={'outline'}/>:<View style={styles.container}>
+    !profile?<WaveIndicator color={Color.Primary} size={60} count={4} waveFactor={0.60} waveMode={'outline'}/>:<ScrollView style={styles.container}>
+    <View style={{alignItems:'center', alignSelf:'center', marginTop:15}}>
+    <Avatar rounded source={{uri:profile.avatar}} imageProps={{resizeMode:'contain'}} size={110}/>
+    </View>
+    
     <Card containerStyle={styles.input}>
          <View style={styles.cardContent}>
          <Entypo name="email" size={16} color={'#999999'} />
@@ -59,13 +63,13 @@ const Profile= props=>{
         <Card containerStyle={{...styles.input, width:'45%'}}>
         <View style={styles.cardContent}>
         <FontAwesome5 name="car" size={22} color={'#999999'} />
-        <Text style={styles.text}>{profile.carName}</Text>        
+        <Text style={styles.text}>{profile.driverCarName}</Text>        
         </View>
         </Card>
         <Card containerStyle={{...styles.input, width:'45%'}}>
         <View style={styles.cardContent}>
         <Fontisto name="date" size={22} color={'#999999'} />
-        <Text style={styles.text}>{profile.carModel}</Text>        
+        <Text style={styles.text}>{profile.driverCarModel}</Text>        
         </View>
         </Card>
         </View>
@@ -73,13 +77,13 @@ const Profile= props=>{
         <Card containerStyle={{...styles.input, width:'45%'}}>
         <View style={styles.cardContent}>
         <FontAwesome name="drivers-license-o" size={22} color={'#999999'} />
-        <Text style={styles.text}>{profile.carLicensePlate}</Text>        
+        <Text style={styles.text}>{profile.driverLicensePlate}</Text>        
         </View>
         </Card>
         <Card containerStyle={{...styles.input, width:'45%'}}>
         <View style={styles.cardContent}>
         <Ionicons name={Platform.OS==='ios'?"ios-color-palette":"md-color-palette"} size={22} color={'#999999'} />
-        <Text style={styles.text}>{profile.carColor}</Text>        
+        <Text style={styles.text}>{profile.driverCarColor}</Text>        
         </View>
         </Card>
         </View>
@@ -87,7 +91,7 @@ const Profile= props=>{
     
 }
 
-    </View>
+    </ScrollView>
     )
 }
 
@@ -131,7 +135,10 @@ export const ProfileOption= navData=>{
            </HeaderButtons>
        ),
        headerTintColor: Color.Second,
-       headerTitleAlign:'center'
+       headerTitleAlign:'center',
+       headerStyle:{
+        backgroundColor:userMode? Color.Primary: Color.lightBlue
+    }
     }
 }
 

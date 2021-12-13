@@ -1,15 +1,16 @@
 import React,{useEffect, useState} from 'react'
-import {View, Text, StyleSheet,Linking} from 'react-native'
+import {View, Text, StyleSheet,Linking,TouchableOpacity, TouchableWithoutFeedback, Platform} from 'react-native'
 import Color from '../../constants/Color'
 import { Card, Avatar } from 'react-native-elements'
 import { Button, DataTable,Dialog} from 'react-native-paper'
 import { driverCompleteOrder } from '../../store/actions/actions'
 import { useDispatch } from 'react-redux'
 import { database } from '../../configDB'
-import {FontAwesome5,Ionicons} from '@expo/vector-icons'
+import {FontAwesome5,Ionicons, FontAwesome} from '@expo/vector-icons'
 import LottieView from 'lottie-react-native';
 let mounted;
 const OrderCompletePickup= props=>{
+  let Touch;
     const dispatch= useDispatch()
     const [deliveryCanceled, setDeliveryCanceled]= useState(false)
 
@@ -17,7 +18,26 @@ const OrderCompletePickup= props=>{
          database.ref('pickUpOrder/'+props.route.params.id).update({
             completed: true
         }).then(()=>{
-            //dispatch(driverCompleteOrder())
+          fetch("https://exp.host/--/api/v2/push/send", {
+            method:"POST",
+            headers:{
+              'host':'exp.host',
+              'accept': 'application/json',
+              'accept-encoding': 'gzip, deflate',
+              'content-type': 'application/json',
+            },
+            body: JSON.stringify({
+              to: "ExponentPushToken[RgtTCsBT6uDWjwx2wUM1jn]",
+              title: "ORDER WAS COMPLETED",
+              body:"Happy Completed Order",
+              data: {
+                page: 'PickUp',
+                deliveryId: props.route.params.id
+              },
+              time: 1,
+              sound: "default",
+            })
+          })
             props.navigation.navigate('Pickup orders')
         })
         
@@ -34,7 +54,6 @@ const OrderCompletePickup= props=>{
     }
 
     const makeCall=()=>{
-      console.log(props.userPhoneNumber);
       if(Platform.OS==='ios'){
           Linking.openURL(`telprompt:${props.route.params.userPhoneNumber}`)
       }else{
@@ -42,6 +61,11 @@ const OrderCompletePickup= props=>{
       }
   }
 
+  if(Platform.OS==='ios'){
+    Touch= TouchableOpacity
+}else{
+    Touch= TouchableWithoutFeedback
+}
 
     useEffect(()=>{
       mounted= true
@@ -55,11 +79,20 @@ const OrderCompletePickup= props=>{
     return !deliveryCanceled? <Card containerStyle={styles.containerStyle}>
       <View style={{alignItems:'center',flexDirection:'row-reverse', justifyContent:'space-around', marginTop:10}}>
      
-      <Avatar rounded source={require('../../assets/favicon.png')} size={'medium'}/>
-     
-      <Text style={{fontWeight:'700',  color:Color.lightBlue}}>{props.route.params.userName}</Text>
-      <Ionicons name={Platform.OS==='ios'? "ios-call":"md-call"} size={35} color={Color.lightBlue} onPress={()=>makeCall()}/>    
-     
+      <Avatar rounded source={{uri:props.route.params.avatar}} size={'medium'}/>
+
+      <Text style={{fontWeight:'700',  color:Color.lightBlue}}>{props.route.params.userName}</Text>  
+      </View>
+      <View style={{alignItems:'center', flexDirection:'row', justifyContent:'space-evenly', marginTop:15}}>
+      <Touch style={{width:'30%', alignItems:'center', backgroundColor:Color.Primary, borderRadius:10, padding:10}} onPress={()=>props.navigation.navigate('chat',{
+        userName:props.route.params.userName,
+        orderId: props.route.params.id
+      })}>
+            <FontAwesome name="wechat" size={35} color={Color.lightBlue} />
+        </Touch>
+        <Touch style={{width:'30%', alignItems:'center', backgroundColor:Color.Primary, borderRadius:10, padding:10}} >
+        <Ionicons name={Platform.OS==='ios'? "ios-call":"md-call"} size={35} color={Color.lightBlue} onPress={()=>makeCall()}/>
+        </Touch>
       </View>
           <View style={styles.placeToGo}>
               <Text style={styles.placeToGoText}>Place To Go</Text>
@@ -95,7 +128,7 @@ const OrderCompletePickup= props=>{
       <Dialog.Content style={{width:'80%', alignSelf:'center'}}>
           <Button mode='contained' children="OKAY):" color={Color.lightBlue} onPress={()=>{
             setDeliveryCanceled(false)
-            props.navigation.navigate('Delivery orders')
+            props.navigation.navigate('Pickup orders')
           }}/>
       </Dialog.Content>
   </Dialog>

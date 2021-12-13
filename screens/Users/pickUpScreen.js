@@ -36,7 +36,7 @@ const PickUpScreen= props=>{
 
     return <View style={styles.container}>
   
-    <MapPreview delivery={delivery.id}/>
+    <MapPreview delivery={delivery.id} navigation={props.navigation}/>
     
     </View>
 }

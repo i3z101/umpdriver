@@ -1,18 +1,18 @@
 const initiState= {
     idToken:null,
     userId:null,
-    usersId:'kbhjbhjhjb',
     userMode:true,
     driverMode:false,
     typeOfUser:null,
     authError:null,
     errorStatus:false,
     userProfile:{},
-    driverProfile:{}
+    driverProfile:{},
+    badge:0
 }
 
 
-
+  
 const authReducer= (state=initiState, action)=>{
     switch(action.type){
         case 'USER_AUTH':
@@ -21,7 +21,8 @@ const authReducer= (state=initiState, action)=>{
                 idToken:action.idToken,
                 userId: action.userId,
                 userMode:true,
-                typeOfUser: 'user'
+                typeOfUser: 'user',
+                
             }
         case 'DRIVER_AUTH':
             return{
@@ -29,7 +30,8 @@ const authReducer= (state=initiState, action)=>{
                 idToken:action.idToken,
                 userId: action.userId,
                 userMode:false,
-                typeOfUser:'driver'
+                typeOfUser:'driver',
+                
             }
         case 'LOGOUT':
             return {
@@ -74,7 +76,9 @@ const authReducer= (state=initiState, action)=>{
                 idToken:action.idToken,
                 userId: action.userId,
                 userMode:true,
-                typeOfUser: 'user'
+                typeOfUser: 'user',
+                badge: action.badge
+                
             }
         case 'AUTO_AUTH_DRIVER':
             return{
@@ -82,7 +86,8 @@ const authReducer= (state=initiState, action)=>{
                 idToken:action.idToken,
                 userId: action.userId,
                 userMode:false,
-                typeOfUser:'driver' 
+                typeOfUser:'driver',
+                
             }
         case 'DID_TRY':
             return{
@@ -104,6 +109,11 @@ const authReducer= (state=initiState, action)=>{
             return{
                 ...state,
                 driverProfile:action.driverProfile
+            }
+        case 'ADD_BADGE':
+            return{
+                ...state,
+                userBadge: action.badge
             }
         default:
             return state

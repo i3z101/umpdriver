@@ -1,6 +1,6 @@
 import { useSelector } from 'react-redux';
 import {database} from '../../configDB';
-export const addDeliveryOrder= (orderDate,userName,serviceType, description, address,googleMapUrl, time, userPhoneNumber)=>{
+export const addDeliveryOrder= (orderDate,userName,serviceType, description, address,googleMapUrl, time, userPhoneNumber, badge, avatar, idPushToken)=>{
     return async (dispatch, getState)=>{
         try{
            const data= await fetch('https://ump-driver.firebaseio.com/deliveryOrder.json',{
@@ -18,7 +18,10 @@ export const addDeliveryOrder= (orderDate,userName,serviceType, description, add
                    time,
                    findDriver:false,
                    completed: false,
-                   userPhoneNumber
+                   userPhoneNumber,
+                   badge,
+                   avatar,
+                   idPushToken
                })
            })
            const response= await data.json()
@@ -80,7 +83,7 @@ export const cancelPickupOrder= (id)=>{
 
 
 
-export const pickUpOrder= (orderDate,userName,placeName, destination, arrivalTime, price, userPhoneNumber)=>{
+export const pickUpOrder= (orderDate,userName,placeName, destination, arrivalTime, price, userPhoneNumber, badge, avatar, idPushToken)=>{
     return async (dispatch)=>{
         try{
             const data= await fetch ('https://ump-driver.firebaseio.com/pickUpOrder.json',{
@@ -97,7 +100,10 @@ export const pickUpOrder= (orderDate,userName,placeName, destination, arrivalTim
                 price,
                 findDriver:false,
                 completed: false,
-                userPhoneNumber
+                userPhoneNumber,
+                badge,
+                avatar,
+                idPushToken
             })
         })
         if(!data.ok){
@@ -169,3 +175,4 @@ export const addDeliveryProfile= (driverProfile)=>{
         driverProfile
     }
 }
+

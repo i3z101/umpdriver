@@ -19,7 +19,7 @@ import RBSheet from "react-native-raw-bottom-sheet";
 import {database} from '../configDB'
 import {Avatar} from 'react-native-elements'
 import DialogDriver from './DialogDriver';
-
+import * as Notifications from 'expo-notifications';
 
 let pickupOrder
 let mount=false
@@ -51,7 +51,9 @@ const MapPreview= props=>{
        return ()=>mount=false
     },[])
 
-   
+    useEffect(()=>{
+        getData(pickupOrder.id)
+    },[])
   
 
     
@@ -76,7 +78,7 @@ const MapPreview= props=>{
     const [driverFound, setDriverFound]= useState(false)
     const btmSheet= useRef(Modalize)
     const [showDriverDetails, setShowDriverDetails]= useState(false)
-    const driverDetails= useRef()
+    const driverDetails= useRef(RBSheet)
     const [showDriverInfoButton, setShowDriverInfoButton]=useState(false)
     const dispatch= useDispatch()
     const [confirmCancel, setConfirmCancel]= useState(false)
@@ -87,7 +89,9 @@ const MapPreview= props=>{
         driverCarModel: '',
         driverLicensePlate: '',
         driverCarColor:'',
-        driverphoneNumber:''
+        driverphoneNumber:'',
+        driverAvatar:'',
+        driverPushToken:''
     })
     
 
@@ -103,11 +107,6 @@ const MapPreview= props=>{
     if(Platform.OS==='android'){
         Touch= TouchableWithoutFeedback
     }
-
-    
-
-    
-    
 
 
 
@@ -187,7 +186,7 @@ const MapPreview= props=>{
        }, 100);
        
        
-    }catch(err){
+    }catch(err){use
         console.log(err);
         throw err
     }
@@ -200,10 +199,9 @@ const MapPreview= props=>{
 
     
     
-    const getData= async()=>{
-
+    const getData= async(pickupId)=>{
         try{
-                const data= database.ref('pickUpOrder/'+pickupOrder.id)
+                const data= database.ref('pickUpOrder/'+pickupId)
                 data.on('value', (res)=>{
                 const response= res.val()
                 if(response){
@@ -236,6 +234,8 @@ const MapPreview= props=>{
                             driverLicensePlate: response.driverDetails.driverLicensePlate,
                             driverCarColor:response.driverDetails.driverCarColor,
                             driverphoneNumber:response.driverDetails.driverphoneNumber,
+                            driverAvatar: response.driverDetails.driverAvatar,
+                            driverPushToken: response.driverDetails.driverPushToken,
                         })
                         if(response.completed){
                             setDriverFound(false)
@@ -243,32 +243,25 @@ const MapPreview= props=>{
                         }
                         setDriverFound(true)
                         setShowDriverInfoButton(true)
-                        driverDetails.current.close()    
+                        setShowDriverDetails(false)
                         clearTimeout(timer)
                         timer= null;
                         if(response.completed){
+                            setShowDriverDetails(false)
                             setShowDriverInfoButton(false)
                             setDriverFound(false)
                             setCompletedOrder(true)
-                            addToHistory(response,pickupOrder.id)
+                            // addToHistory(response,pickupOrder.id)
                             addToHistory(response)
                             data.remove()
                         }
                     }        
                 }
             })
-
-            
-
-           
-
         }catch(err){
             console.log(err);
         }
     }
-    
-    
-
 
     let mapConfig={
         latitude: currentPosition.lat? currentPosition.lat : 3.822210,
@@ -286,15 +279,15 @@ const MapPreview= props=>{
     }
 
     const addPickUpOrder= async(placeName, destination, arrivalTime, price)=>{
-        
+        const badge= await Notifications.getBadgeCountAsync()
         const orderDate= moment(new Date()).format("dddd, MMMM Do YYYY, h:mm:ss a");
-        await dispatch(pickUpOrder(orderDate,profile.fullName,placeName, destination, arrivalTime,price, profile.phoneNumber))
+        await dispatch(pickUpOrder(orderDate,profile.fullName,placeName, destination, arrivalTime,price, profile.phoneNumber, badge, profile.avatar, profile.idPushToken))
         if(pickupOrder!==null){
              btmSheet.current.close()
-        setShowDriverDetails(true)
-        setTimeout(() => {
+            setShowDriverDetails(true)
+            setTimeout(() => {
             driverDetails.current.open()
-            getData()
+            getData(pickupOrder.id)
            }, 500);
 
         }   
@@ -307,7 +300,7 @@ const MapPreview= props=>{
         setShowDriverInfoButton(false)
     }
 
-    const addToHistory= async(pickupOrder,pickpId)=>{
+    const addToHistory= async(pickupOrder)=>{
         await database.ref('ordersHistory/pickupOrders/'+userId).push(pickupOrder)
     }
     
@@ -409,13 +402,20 @@ const MapPreview= props=>{
         driverCarColor={driverInfo.driverCarColor}
         driverLicensePlate={driverInfo.driverLicensePlate}
         driverPhoneNumber={driverInfo.driverphoneNumber}
-        source={require('../assets/favicon.png')}
+        source={driverInfo.driverAvatar}
+        driverPushToken={driverInfo.driverPushToken}
         onPressCancel={()=>setConfirmCancel(true)}
         onPressAwesome={()=>{
             setDriverFound(false)
-            btmSheet.current.close()
-            dispatch(findDriver())
+            // if(btmSheet.current===btmSheet.current.open()){
+            //     btmSheet.current.close()
+            // }
+            
         }}
+        chatPage={()=>props.navigation.navigate('chat', {
+            userName:driverInfo.driverName,
+            orderId: pickupOrder.id
+        })}
         />}
 
         {confirmCancel&&<Dialog visible={confirmCancel}>

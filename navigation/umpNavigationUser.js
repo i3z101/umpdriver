@@ -11,6 +11,7 @@ import {Ionicons} from '@expo/vector-icons'
 import { Platform, Text } from 'react-native'
 import DeliveryScreen, {DeliveryOptionStyle} from '../screens/Users/DeliveryScreen'
 import PickUpScreen,{PickUpOptionStyle} from '../screens/Users/pickUpScreen'
+import Chat from '../screens/Chat'
 
 const UmpNavigationUser= props=>{
     const Stack= createStackNavigator()
@@ -26,6 +27,15 @@ const UmpNavigationUser= props=>{
         <Stack.Screen name='Home' component={Home} options={OrderOptionStyle}/>
         <Stack.Screen name='PickUp' component={PickUpScreen} options={PickUpOptionStyle}/>
         <Stack.Screen name='Delivery' component={DeliveryScreen} options={DeliveryOptionStyle}/>
+        <Stack.Screen name='chat' component={Chat} options={
+            (props)=>({
+                headerTitle: props.route.params.userName,
+                headerBackTitleStyle:{
+                    color:'black',
+                },
+                headerTintColor:'black'
+            })
+        }/>
         </Stack.Navigator>
     }
 
@@ -76,7 +86,7 @@ const UmpNavigationUser= props=>{
             tabBarIcon:()=>{
                 return <Ionicons name={Platform.OS==='android'? 'md-person': 'ios-person'} size={24} color={Color.Second}/>
             },
-            tabBarColor:Color.lightBlue
+            tabBarColor:Color.Primary
         }}/>
     </Bottom.Navigator>
     }

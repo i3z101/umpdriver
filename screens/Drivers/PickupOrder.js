@@ -57,7 +57,9 @@ const DriverScreen= props=>{
                     arrivalTime: fetchedData[key].arrivalTime,
                     price: fetchedData[key].price,
                     findDri: fetchedData[key].findDriver,
-                    userPhoneNumber: fetchedData[key].userPhoneNumber
+                    userPhoneNumber: fetchedData[key].userPhoneNumber,
+                    badge: fetchedData[key].badge,
+                    avatar: fetchedData[key].avatar
                 })
             }
             setPickupOrders(prevState=>({
@@ -69,18 +71,41 @@ const DriverScreen= props=>{
     },[])
 
     const acceptOrder= async(id)=>{
+        const orderIndex= pickupOrders.listOrders.findIndex(order=>order.id===id)
          await database.ref('pickUpOrder/'+id).update({
             findDriver:true,
             driverDetails:{
                 driverName: profile.fullName,
-                driverCarName: profile.carName,
-                driverCarModel: profile.carModel,
-                driverLicensePlate: profile.carLicensePlate,
-                driverCarColor:profile.carColor,
+                driverCarName: profile.driverCarName,
+                driverCarModel: profile.driverCarModel,
+                driverLicensePlate: profile.driverLicensePlate,
+                driverCarColor:profile.driverCarColor,
                 driverphoneNumber:profile.phoneNumber,
+                driverAvatar: profile.avatar,
+                driverPushToken: profile.idPushToken
               }
         })
-        const orderIndex= pickupOrders.listOrders.findIndex(order=>order.id===id)
+        await fetch("https://exp.host/--/api/v2/push/send", {
+            method:"POST",
+            headers:{
+              'host':'exp.host',
+              'accept': 'application/json',
+              'accept-encoding': 'gzip, deflate',
+              'content-type': 'application/json',
+            },
+            body: JSON.stringify({
+              to: "ExponentPushToken[W0zmhWHEdcRoBZA3Qdta3t]",
+              title: "ORDER WAS ACCEPTED",
+              body:"Happy order",
+              data: {
+                page: 'PickUp',
+                deliveryId: id
+              },
+              time: 1,
+              sound: "default",
+              badge: pickupOrders.listOrders[orderIndex].badge + 1,
+            })
+          })
         database.ref('driverOrder/pickUpOrder/'+userId+'/'+id).push(JSON.parse(JSON.stringify(pickupOrders.listOrders[orderIndex])))
         dispatch(driverNotCompleteOrder(pickupOrders.listOrders[orderIndex].id))
 
@@ -92,7 +117,9 @@ const DriverScreen= props=>{
             destination: pickupOrders.listOrders[orderIndex].destination,
             arrivalTime: pickupOrders.listOrders[orderIndex].arrivalTime,
             price: pickupOrders.listOrders[orderIndex].price,
-            userPhoneNumber: pickupOrders.listOrders[orderIndex].userPhoneNumber
+            userPhoneNumber: pickupOrders.listOrders[orderIndex].userPhoneNumber,
+            avatar: pickupOrders.listOrders[orderIndex].avatar,
+            idPushToken:pickupOrders.listOrders[orderIndex].idPushToken,
           });
     }
 
@@ -144,7 +171,9 @@ const DriverScreen= props=>{
                       destination: result.destination,
                       arrivalTime: result.address,
                       price: result.price,
-                      userPhoneNumber: result.userPhoneNumber
+                      userPhoneNumber: result.userPhoneNumber,
+                      avatar: result.avatar,
+                      idPushToken: result.idPushToken
                   });
                     }
               }
@@ -179,7 +208,7 @@ const DriverScreen= props=>{
                 return <Card containerStyle={styles.containerStyle}>
                 <View style={{alignItems:'center',flexDirection:'row-reverse', justifyContent:'space-around', marginTop:10}}>
                
-                <Avatar rounded source={require('../../assets/favicon.png')} size={'medium'}/>
+                <Avatar rounded source={{uri:itemData.item.avatar}} size={'medium'}/>
                
                 <Text style={{fontWeight:'700',  color:Color.lightBlue}}>{itemData.item.userName}</Text>
                   
@@ -285,7 +314,7 @@ const styles= StyleSheet.create({
 export const PickUpOptionStyle= navData=>{
     return{
         headerBackTitleVisible:false,
-        headerTintColor:Color.Second,
+        headerTintColor:Color.white,
         headerTitleAlign:'center'
     }
     

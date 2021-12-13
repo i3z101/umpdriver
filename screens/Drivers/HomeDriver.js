@@ -224,7 +224,7 @@ export const OrderOptionStyle= navData=>{
            iconName={Platform.OS==='android'? 'md-menu' : 'ios-menu'}
            title='menu'
            onPress={()=>{navData.navigation.dispatch(DrawerActions.openDrawer());}}
-           color={Color.Second}
+           color={Color.white}
            iconSize={24}
            />
            </HeaderButtons>
@@ -236,12 +236,12 @@ export const OrderOptionStyle= navData=>{
         iconName={'poweroff'}
         title='log out'
         onPress={()=>{dispatch(logOut())}}
-        color={Color.Second}
+        color={Color.white}
         iconSize={24}
         />
         </HeaderButtons>
     ),
-       headerTintColor: Color.Second,
+       headerTintColor: Color.white,
        headerTitleAlign:'center' 
     }
    

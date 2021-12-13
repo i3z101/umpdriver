@@ -1,15 +1,16 @@
 import React, { Fragment, useEffect, useState } from 'react'
-import {View, Text, StyleSheet, Linking} from 'react-native'
+import {View, Text, StyleSheet, Linking, TouchableOpacity, TouchableWithoutFeedback} from 'react-native'
 import Color from '../../constants/Color'
 import { Card, Avatar } from 'react-native-elements'
 import { Button, DataTable, Dialog} from 'react-native-paper'
 import { useDispatch } from 'react-redux'
 import { database } from '../../configDB'
-import {FontAwesome5, Ionicons} from '@expo/vector-icons'
+import {FontAwesome5, Ionicons, FontAwesome} from '@expo/vector-icons'
 import LottieView from 'lottie-react-native';
 let mounted;
 const OrderComplete= props=>{
      mounted= false
+     let Touch;
     const dispatch= useDispatch()
     const [deliveryCanceled, setDeliveryCanceled]= useState(false)
 
@@ -17,6 +18,27 @@ const OrderComplete= props=>{
          database.ref('deliveryOrder/'+props.route.params.id).update({
             completed: true
         }).then(()=>{
+            fetch("https://exp.host/--/api/v2/push/send", {
+            method:"POST",
+            headers:{
+              'host':'exp.host',
+              'accept': 'application/json',
+              'accept-encoding': 'gzip, deflate',
+              'content-type': 'application/json',
+            },
+            body: JSON.stringify({
+              to: "ExponentPushToken[W0zmhWHEdcRoBZA3Qdta3t]",
+              title: "ORDER WAS COMPLETED",
+              body:"Happy Completed Order",
+              data: {
+                page: 'Delivery',
+                deliveryId: props.route.params.id
+              },
+              time: 1,
+              sound: "default",
+              badge:10
+            })
+          })
             props.navigation.navigate('Delivery orders')
         })
     }
@@ -49,15 +71,30 @@ const OrderComplete= props=>{
       return ()=>mounted=false
     },[])
 
+    if(Platform.OS==='ios'){
+      Touch= TouchableOpacity
+  }else{
+      Touch= TouchableWithoutFeedback
+  }
+
     return !deliveryCanceled? <Card containerStyle={styles.containerStyle}>
             <View style={{alignItems:'center',flexDirection:'row-reverse', justifyContent:'space-around', marginTop:10}}>
            
-            <Avatar rounded source={require('../../assets/favicon.png')} size={'medium'}/>
+            <Avatar rounded source={{uri:props.route.params.avatar}} size={'medium'}/>
            
             <Text style={{fontWeight:'700',  color:Color.lightBlue}}>{props.route.params.userName}</Text>
-            <Ionicons name={Platform.OS==='ios'? "ios-call":"md-call"} size={35} color={Color.lightBlue} onPress={()=>makeCall()}/> 
             </View>
-            
+            <View style={{alignItems:'center', flexDirection:'row', justifyContent:'space-evenly', marginTop:15}}>
+              <Touch style={{width:'30%', alignItems:'center', backgroundColor:Color.Primary, borderRadius:10, padding:10}} onPress={()=>props.navigation.navigate('chat',{
+                userName:props.route.params.userName,
+                orderId: props.route.params.id
+              })}>
+                    <FontAwesome name="wechat" size={35} color={Color.lightBlue} />
+                </Touch>
+                <Touch style={{width:'30%', alignItems:'center', backgroundColor:Color.Primary, borderRadius:10, padding:10}} >
+                <Ionicons name={Platform.OS==='ios'? "ios-call":"md-call"} size={35} color={Color.lightBlue} onPress={()=>makeCall()}/>
+                </Touch>
+              </View>
               <DataTable>
               <DataTable.Header>
                     <DataTable.Cell> <Text style={{fontWeight:'700'}}>{props.route.params.orderDate}</Text></DataTable.Cell>

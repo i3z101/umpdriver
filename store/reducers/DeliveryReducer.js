@@ -4,7 +4,7 @@ import { dummyDriver } from '../../modal/driver-class'
  
 const initState= {
     deliveryOrder:{},
-    deliveryOrderHistory:{}
+    deliveryOrderHistory:{},
 }
 
 const deliveryReducer=(state=initState, action)=>{

@@ -10,13 +10,34 @@ import { Octicons,AntDesign, Ionicons} from '@expo/vector-icons';
 import androidIconsStyles from '../../constants/androidIconsStyles'
 import { useDispatch, useSelector } from 'react-redux';
 import { logOut } from '../../store/authAction/authAction';
-
+import * as Notifications from 'expo-notifications';
 let findDriver;
 let userProfile;
+let userBadge;
 const Home= props=>{
+
+    useEffect(()=>{
+        const background= Notifications.addNotificationResponseReceivedListener(resp=>{
+        const badgeCount= resp.notification.request.content.badge 
+        Notifications.setBadgeCountAsync(badgeCount-1).then(()=>{
+            props.navigation.navigate(resp.notification.request.content.data.body.page,{
+                deliveryId: resp.notification.request.content.data.body.deliveryId
+            });
+        })
+        });
+        return()=>{
+          background.remove()
+        }
+      },[])
+
+    
+
     let Touchable;
     findDriver= useSelector(state=>state.delivery.findDriver);
     userProfile= useSelector(state=>state.auth.userProfile);
+    userBadge= useSelector(state=>state.auth.badge)
+
+    
 
     if(Platform.OS==='android'){
         Touchable= TouchableHighlight 

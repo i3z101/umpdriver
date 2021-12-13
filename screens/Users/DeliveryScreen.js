@@ -7,7 +7,7 @@ import {TextInput, Button, DataTable, Dialog} from 'react-native-paper'
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment'
 import { useDispatch, useSelector } from 'react-redux';
-import { addDeliveryOrder, addOrderToHistory, cancelDeliveryOrder, orderCancelationHandler } from '../../store/actions/actions';
+import { addBadge, addDeliveryOrder, addOrderToHistory, cancelDeliveryOrder, orderCancelationHandler } from '../../store/actions/actions';
 import RBSheet from "react-native-raw-bottom-sheet";
 import LottieView from 'lottie-react-native';
 import * as yup from 'yup'
@@ -18,7 +18,7 @@ import {Avatar} from 'react-native-elements'
 import DialogDriver from '../../component/DialogDriver'
 import { HeaderButtons, Item } from 'react-navigation-header-buttons'
 import CustomHeaderButton from '../../component/HeaderButton'
-
+import * as Notifications from 'expo-notifications'
 
 const validationSchema= yup.object({
     description: yup.string().required().min(3),
@@ -30,9 +30,10 @@ let delivery;
 let userId;
 let profile;
 let orderId=null;
+let userBadge;
 const DeliveryScreen= props=>{
-    
     //declares variables
+    userBadge= useSelector(state=>state.auth.userBadge);
     let modal;
     let timer=null;
     userId= useSelector(state=>state.auth.userId)
@@ -69,9 +70,11 @@ const DeliveryScreen= props=>{
         driverName: '',
         driverCarName: '',
         driverCarModel: '',
-        driverLicensePlate: '',
+        driverLicensePlate: '', 
         driverCarColor:'',
-        driverphoneNumber:''
+        driverphoneNumber:'',
+        driverAvatar:'',
+        driverPushToken:''
     })
 
 
@@ -85,12 +88,9 @@ const DeliveryScreen= props=>{
     
    
 
-    const getData= async()=>{    
+    const getData= async(deliveryId)=>{    
           try{
-              if(delivery.id){
-                  
-              }
-                const data= database.ref('deliveryOrder/'+delivery.id)
+                const data= database.ref('deliveryOrder/'+deliveryId)
                 data.on('value', (res)=>{
                     const response= res.val()
                     if(response){
@@ -117,12 +117,16 @@ const DeliveryScreen= props=>{
                                 driverLicensePlate: response.driverDetails.driverLicensePlate,
                                 driverCarColor:response.driverDetails.driverCarColor,
                                 driverphoneNumber:response.driverDetails.driverphoneNumber,
+                                driverAvatar: response.driverDetails.driverAvatar,
+                                driverPushToken: response.driverDetails.driverPushToken,
                             })
                             if(response.completed){
                                 setShowDriverFound(false)
                                 setShowDriverInfoButton(false)
                                 dispatch(findDriver())
                             }
+                            setPlaceOrder(true)
+                            setDisabledWrite(true)
                             orderId= res.key;
                             setShowDriverFound(true)
                             setShowDriverInfoButton(true)
@@ -157,9 +161,8 @@ const DeliveryScreen= props=>{
     }
 
     useEffect(()=>{
-        getData()
+        getData(delivery.id)
     },[])
-    
 
     
 
@@ -172,25 +175,23 @@ const DeliveryScreen= props=>{
       };
 
       const deliveryOrderHandler= async(description,address, googleMapUrl)=>{
+          
+            const badge= await Notifications.getBadgeCountAsync()
             const orderDate= moment(new Date()).format("dddd, MMMM Do YYYY, h:mm:ss a");
-            await dispatch(addDeliveryOrder(orderDate,profile.fullName,selectedService, description, address,googleMapUrl,timeDeliveryValue, profile.phoneNumber))
+            await dispatch(addDeliveryOrder(orderDate,profile.fullName,selectedService, description, address,googleMapUrl,timeDeliveryValue, profile.phoneNumber, badge, profile.avatar, profile.idPushToken))
             if(delivery!==null){
             setTimeout(()=>{
             setPlaceOrder(true)
             setDisabledWrite(true)
             setHeight(450)
             bottomShow.current.open()
-            getData()
+            getData(delivery.id)
             },100)
             }
-            
-            
-           
       }
 
       //AFTER DRIVER ACCEPTS ORDER
       const cancelOrderHandler=(id)=>{ 
-          console.log(id);
           dispatch(cancelDeliveryOrder(id))
           setConfirmCancel(false)
           setShowDriverFound(false)
@@ -213,15 +214,6 @@ const DeliveryScreen= props=>{
       const addToHistory= async(deliveryOrder,deliveryId)=>{
            await database.ref('ordersHistory/deliveryOrder/'+userId).push(deliveryOrder)
       }
-
-
-
-    //   const addOrderToHistory= (deliveryId, userId)=>{
-    //     database.ref('deliveryOrderHistory/'+userId).push()
-    //   }
-
-
-
 
 
       if(delivery){
@@ -507,7 +499,8 @@ const DeliveryScreen= props=>{
     driverLicensePlate={driverInfo.driverLicensePlate}
     driverPhoneNumber={driverInfo.driverphoneNumber}
     cannotCancel={disabledCancelButton}
-    source={require('../../assets/favicon.png')}
+    source={driverInfo.driverAvatar}
+    driverPushToken={driverInfo.driverPushToken}
     onPressCancel={()=>{
         //setShowDriverFound(false)
         setConfirmCancel(true)
@@ -517,6 +510,10 @@ const DeliveryScreen= props=>{
         bottomShow.current.close()
         // dispatch(findDriver())
     }}
+    chatPage={()=>props.navigation.navigate('chat', {
+        userName:driverInfo.driverName,
+        orderId: delivery.id
+    })}
     />
 
         {confirmCancel&&<Dialog visible={confirmCancel}>

@@ -13,7 +13,7 @@ import {acceptOrderInfo, driverCompleteOrder} from '../../store/actions/actions'
 import {fetchDriverData} from '../../dbSQL'
 import LottieView from 'lottie-react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
-
+import * as Notifications from 'expo-notifications'
 
 let driverInfo;
 let delivery;
@@ -39,8 +39,6 @@ const DriverScreen= props=>{
   const [refresh,setRefresh]= useState(false)
   const dispatch= useDispatch()
 
-  
-
   //declare functions
 
   const getDeliveryOrders= useCallback(async()=>{
@@ -65,7 +63,9 @@ const DriverScreen= props=>{
                     googleMapUrl: fetchedData[key].googleMapUrl,
                     time: fetchedData[key].time,
                     finddri:fetchedData[key].findDriver,
-                    userPhoneNumber: fetchedData[key].userPhoneNumber
+                    userPhoneNumber: fetchedData[key].userPhoneNumber,
+                    badge: fetchedData[key].badge,
+                    avatar: fetchedData[key].avatar
                 })
             }
             setDeliveryOrders(prevState=>({
@@ -78,21 +78,42 @@ const DriverScreen= props=>{
   },[])
 
   const acceptOrder= async(id)=>{
-    // const dbResponse= await fetchDriverData();
-    // const dbResult= await dbResponse.rows._array;
+    const orderIndex= deliveryOrder.listOrders.findIndex(order=>order.id===id)
      await database.ref('deliveryOrder/'+id).update({
         findDriver:true,
         driverDetails:{
           driverName: profile.fullName,
-          driverCarName: profile.carName,
-          driverCarModel: profile.carModel,
-          driverLicensePlate: profile.carLicensePlate,
-          driverCarColor:profile.carColor,
+          driverCarName: profile.driverCarName,
+          driverCarModel: profile.driverCarModel,
+          driverLicensePlate: profile.driverLicensePlate,
+          driverCarColor:profile.driverCarColor,
           driverphoneNumber:profile.phoneNumber,
+          driverAvatar: profile.avatar,
+          driverPushToken: profile.idPushToken,
         }
     })
-
-    const orderIndex= deliveryOrder.listOrders.findIndex(order=>order.id===id)
+    await fetch("https://exp.host/--/api/v2/push/send", {
+      method:"POST",
+      headers:{
+        'host':'exp.host',
+        'accept': 'application/json',
+        'accept-encoding': 'gzip, deflate',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        to: "ExponentPushToken[W0zmhWHEdcRoBZA3Qdta3t]",
+        title: "ORDER WAS ACCEPTED",
+        body:"Happy order",
+        data: {
+          page: 'Delivery',
+          deliveryId: id
+        },
+        time: 1,
+        sound: "default",
+        badge: 100,
+        
+      })
+    })
     database.ref('driverOrder/deliveryOrder/'+userId+'/'+id).push(JSON.parse(JSON.stringify(deliveryOrder.listOrders[orderIndex])))
     dispatch(driverNotCompleteOrder(deliveryOrder.listOrders[orderIndex].id))
       
@@ -105,7 +126,9 @@ const DriverScreen= props=>{
       address: deliveryOrder.listOrders[orderIndex].address,
       googleMapUrl: deliveryOrder.listOrders[orderIndex].googleMapUrl,
       time: deliveryOrder.listOrders[orderIndex].time,
-      userPhoneNumber:deliveryOrder.listOrders[orderIndex].userPhoneNumber
+      userPhoneNumber:deliveryOrder.listOrders[orderIndex].userPhoneNumber,
+      avatar: deliveryOrder.listOrders[orderIndex].avatar,
+      idPushToken: deliveryOrder.listOrders[orderIndex].idPushToken,
     });
       
     
@@ -150,16 +173,17 @@ useEffect(()=>{
         if(result){
           if(!result.completed){
             props.navigation.navigate('complete Order delivery', {
-              userName: 'Abdulaziz baqaleb',
+              userName: result.userName,
               id:response.key,
               orderDate:result.orderDate,
-              fullName: result.fullName,
               serviceType: result.serviceType,
               description: result.description,
               address: result.address,
               googleMapUrl: result.googleMapUrl,
               time: result.time,
-              userPhoneNumber: result.userPhoneNumber
+              userPhoneNumber: result.userPhoneNumber,
+              avatar: result.avatar,
+              idPushToken: result.idPushToken
           });
             }
         }
@@ -171,18 +195,6 @@ useEffect(()=>{
  },[])
 
 
-//  useEffect(()=>{
-//   fail= props.route.params?props.route.params.fail:null;
-//   succeed= props.route.params?props.route.params.succeed:null;
-//   console.log("fail", fail);
-//   console.log("succeed", succeed);
-//    if(fail&&!succeed){
-//     setDeliveryCanceled(true)
-//    }else if(!fail&&succeed){
-//     setDeliveryCanceled(false)
-//    }
-  
-//  },[fail,succeed, props.route.params])
 
 
 if(refresh){
@@ -204,7 +216,7 @@ if(refresh){
             return <Card containerStyle={styles.containerStyle}>
             <View style={{alignItems:'center',flexDirection:'row-reverse', justifyContent:'space-around', marginTop:10}}>
            
-            <Avatar rounded source={require('../../assets/favicon.png')} size={'medium'}/>
+            <Avatar rounded source={{uri: itemData.item.avatar}} size={'medium'}/>
            
             <Text style={{fontWeight:'700',  color:Color.lightBlue}}>{itemData.item.userName}</Text>
               
@@ -300,7 +312,7 @@ const styles= StyleSheet.create({
 export const driverOptions= navData=>{
   return{
     headerBackTitleVisible:false,
-    headerTintColor:Color.Second,
+    headerTintColor:Color.white,
     headerTitleAlign: 'center'
 }
     
